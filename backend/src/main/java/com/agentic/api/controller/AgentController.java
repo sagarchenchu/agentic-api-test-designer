@@ -1,0 +1,59 @@
+package com.agentic.api.controller;
+
+import com.agentic.api.model.*;
+import com.agentic.api.service.AgentService;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+
+@RestController
+@RequestMapping("/api/agent")
+public class AgentController {
+
+    private final AgentService agentService;
+
+    public AgentController(AgentService agentService) {
+        this.agentService = agentService;
+    }
+
+    @PostMapping("/generate-test-matrix")
+    public List<TestCaseDto> generateTestMatrix(@Valid @RequestBody AgentRequest request) {
+        return agentService.generateTestMatrix(request);
+    }
+
+    @PostMapping("/generate-bdd")
+    public GeneratedBddDto generateBdd(@Valid @RequestBody AgentRequest request) {
+        return agentService.generateBdd(request);
+    }
+
+    @PostMapping("/generate-files")
+    public GeneratedFilesDto generateFiles(@Valid @RequestBody AgentRequest request) {
+        return agentService.generateFiles(request);
+    }
+
+    @PostMapping("/run")
+    public AgentRunResponse runAgent(@Valid @RequestBody AgentRequest request) {
+        return agentService.runAgent(request);
+    }
+
+    @GetMapping("/health")
+    public Map<String, String> health() {
+        return Map.of("status", "ok");
+    }
+
+    @GetMapping("/runs/{runId}")
+    public AgentRunResponse getRun(@PathVariable String runId) {
+        return agentService.getRun(runId);
+    }
+
+    @ExceptionHandler(NoSuchElementException.class)
+    public ResponseEntity<Map<String, String>> handleNotFound(NoSuchElementException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", ex.getMessage()));
+    }
+}
