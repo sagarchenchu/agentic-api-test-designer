@@ -78,6 +78,7 @@ public class MockAgentService implements AgentService {
 
     @Override
     public FileWriteResponse previewFileWrite(FileWriteRequest request) {
+        // Endpoint is the source of truth for mode; writeMode on the DTO is informational only.
         request.setWriteMode("preview");
         return fileWriteService.previewFileWrite(request);
     }

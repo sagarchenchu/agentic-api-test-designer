@@ -710,7 +710,7 @@ export default function App() {
 
     try {
       const response = await previewFileWrite(
-        buildFileWriteRequest(formValues, generatedFiles, 'preview')
+        buildFileWriteRequest(formValues, generatedFiles)
       );
       setFileWritePreview(response);
       updateWriteEligibility(response);
@@ -750,7 +750,7 @@ export default function App() {
 
     try {
       const response = await writeGeneratedFiles(
-        buildFileWriteRequest(formValues, generatedFiles, 'write')
+        buildFileWriteRequest(formValues, generatedFiles)
       );
       setFileWritePreview(response);
       updateWriteEligibility(response);

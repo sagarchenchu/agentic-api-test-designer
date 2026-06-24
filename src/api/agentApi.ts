@@ -59,6 +59,7 @@ export interface AutomationGenerationResponse {
 export interface FileWriteRequest {
   projectPath: string;
   files: GeneratedFile[];
+  /** Informational only — each endpoint enforces preview vs write server-side. */
   writeMode?: 'preview' | 'write';
   overwriteExisting?: boolean;
   createBackup?: boolean;
@@ -124,13 +125,11 @@ export function buildAutomationRequest(
 
 export function buildFileWriteRequest(
   values: AgentFormValues,
-  files: GeneratedFile[],
-  writeMode: 'preview' | 'write'
+  files: GeneratedFile[]
 ): FileWriteRequest {
   return {
     projectPath: values.projectPath,
     files,
-    writeMode,
     overwriteExisting: values.overwriteExisting,
     createBackup: values.createBackup,
   };
@@ -224,7 +223,7 @@ export async function previewFileWrite(
 ): Promise<FileWriteResponse> {
   return apiFetch<FileWriteResponse>('/api/agent/preview-file-write', {
     method: 'POST',
-    body: JSON.stringify({ ...request, writeMode: 'preview' }),
+    body: JSON.stringify(request),
   });
 }
 
@@ -233,7 +232,7 @@ export async function writeGeneratedFiles(
 ): Promise<FileWriteResponse> {
   return apiFetch<FileWriteResponse>('/api/agent/write-generated-files', {
     method: 'POST',
-    body: JSON.stringify({ ...request, writeMode: 'write' }),
+    body: JSON.stringify(request),
   });
 }
 

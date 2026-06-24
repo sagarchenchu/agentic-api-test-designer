@@ -3,7 +3,6 @@ package com.agentic.api.model;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.Pattern;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,7 +16,10 @@ public class FileWriteRequest {
     @Valid
     private List<GeneratedFileDto> files = new ArrayList<>();
 
-    @Pattern(regexp = "^(?i)(preview|write)$", message = "writeMode must be preview or write")
+    /**
+     * Informational only — the preview and write endpoints set this from the route.
+     * Clients may omit it or send a hint for debugging; the server always enforces the correct mode.
+     */
     private String writeMode = "preview";
 
     private boolean overwriteExisting = false;

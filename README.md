@@ -138,7 +138,6 @@ curl -X POST http://localhost:8080/api/agent/preview-file-write \
   -H "Content-Type: application/json" \
   -d '{
     "projectPath": "C:/repos/api-automation-framework",
-    "writeMode": "preview",
     "overwriteExisting": false,
     "createBackup": true,
     "files": [
@@ -158,7 +157,6 @@ curl -X POST http://localhost:8080/api/agent/write-generated-files \
   -H "Content-Type: application/json" \
   -d '{
     "projectPath": "C:/repos/api-automation-framework",
-    "writeMode": "write",
     "overwriteExisting": true,
     "createBackup": true,
     "files": [
@@ -264,6 +262,7 @@ curl -X POST http://localhost:8080/api/agent/run \
   - `src/test/java/validators/`
 - Sensitive paths are blocked (`.git/`, `.github/`, `.env`, `*.pem`, `*.key`, etc.)
 - `overwriteExisting=false` skips existing files; `createBackup=true` writes `<file>.bak.<timestamp>` before updates
+- `writeMode` on `FileWriteRequest` is informational only — preview and write endpoints enforce the correct mode server-side
 - No Maven execution, git commits, or writes outside `projectPath`
 
 Future phases can execute tests and return real reports:
