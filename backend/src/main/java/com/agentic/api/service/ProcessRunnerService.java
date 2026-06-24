@@ -7,15 +7,23 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 @Service
 public class ProcessRunnerService {
 
+    private static final int OUTPUT_READER_JOIN_SECONDS = 2;
+
     public ProcessRunResult run(List<String> command, Path workingDirectory, int timeoutSeconds) {
         ProcessRunResult result = new ProcessRunResult();
-        List<String> outputLines = new ArrayList<>();
+        List<String> outputLines = Collections.synchronizedList(new ArrayList<>());
+        ExecutorService executor = Executors.newSingleThreadExecutor();
 
         try {
             ProcessBuilder builder = new ProcessBuilder(command);
@@ -23,13 +31,18 @@ public class ProcessRunnerService {
             builder.redirectErrorStream(true);
 
             Process process = builder.start();
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    outputLines.add(line);
+
+            Future<?> outputReader = executor.submit(() -> {
+                try (BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        outputLines.add(line);
+                    }
+                } catch (Exception ignored) {
+                    // Process may be destroyed on timeout while the reader is still open.
                 }
-            }
+            });
 
             boolean finished = process.waitFor(timeoutSeconds, TimeUnit.SECONDS);
             if (!finished) {
@@ -39,12 +52,20 @@ public class ProcessRunnerService {
             } else {
                 result.setExitCode(process.exitValue());
             }
+
+            try {
+                outputReader.get(OUTPUT_READER_JOIN_SECONDS, TimeUnit.SECONDS);
+            } catch (Exception ignored) {
+                outputReader.cancel(true);
+            }
         } catch (Exception ex) {
             result.setException(ex.getMessage());
             result.setExitCode(-1);
+        } finally {
+            executor.shutdownNow();
         }
 
-        result.setOutputLines(outputLines);
+        result.setOutputLines(new ArrayList<>(outputLines));
         return result;
     }
 
