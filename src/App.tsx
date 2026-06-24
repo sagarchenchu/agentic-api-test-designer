@@ -860,7 +860,11 @@ export default function App() {
   };
 
   const updateGitPrEligibility = (response: GitPrResponse) => {
-    setCanCreateGitPr(response.status === 'READY' && response.errors.length === 0);
+    setCanCreateGitPr(
+      response.status === 'READY'
+          && response.errors.length === 0
+          && response.changedFiles.length > 0
+    );
   };
 
   const handlePreviewGitPr = async () => {

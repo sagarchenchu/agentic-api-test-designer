@@ -52,7 +52,9 @@ export default function GitPrView({
           title={
             canCreatePr
               ? 'Create branch, commit, push, and open GitHub PR'
-              : 'Preview Git PR first and resolve errors before creating a PR'
+              : result?.status === 'READY' && result.changedFiles.length === 0
+                ? 'No changed files in git status — commit would likely fail with nothing to commit'
+                : 'Preview Git PR first and resolve errors before creating a PR'
           }
         >
           {isRunning ? 'Creating Pull Request...' : 'Create Pull Request'}
