@@ -262,6 +262,67 @@ export default function AgentInputPanel({
           />
         </div>
 
+        <div className="form-row">
+          <div className="form-group form-group--flex">
+            <label htmlFor="baseBranch">Base Branch</label>
+            <input
+              id="baseBranch"
+              type="text"
+              className="form-input"
+              placeholder="main"
+              value={values.baseBranch}
+              onChange={(e) => update('baseBranch', e.target.value)}
+            />
+          </div>
+          <div className="form-group form-group--flex">
+            <label htmlFor="remoteName">Remote Name</label>
+            <input
+              id="remoteName"
+              type="text"
+              className="form-input"
+              placeholder="origin"
+              value={values.remoteName}
+              onChange={(e) => update('remoteName', e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="newBranchName">New Branch Name</label>
+          <input
+            id="newBranchName"
+            type="text"
+            className="form-input"
+            placeholder="feature/PAY-1234-api-tests"
+            value={values.newBranchName}
+            onChange={(e) => update('newBranchName', e.target.value)}
+          />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="commitMessage">Commit Message</label>
+          <input
+            id="commitMessage"
+            type="text"
+            className="form-input"
+            placeholder="Add API automation tests for PAY-1234"
+            value={values.commitMessage}
+            onChange={(e) => update('commitMessage', e.target.value)}
+          />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="prTitle">PR Title</label>
+          <input
+            id="prTitle"
+            type="text"
+            className="form-input"
+            placeholder="PAY-1234 Add API automation tests"
+            value={values.prTitle}
+            onChange={(e) => update('prTitle', e.target.value)}
+          />
+        </div>
+
         <fieldset className="form-group">
           <legend>Execution Mode</legend>
           <div className="radio-group">

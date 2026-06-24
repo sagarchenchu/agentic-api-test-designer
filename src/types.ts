@@ -35,6 +35,7 @@ export type WorkspaceTab =
   | 'generated-files'
   | 'file-write-preview'
   | 'test-execution'
+  | 'git-pr'
   | 'execution-report';
 
 export interface HeaderEntry {
@@ -59,6 +60,12 @@ export interface AgentFormValues {
   testTag: string;
   mavenProfile: string;
   timeoutSeconds: number;
+  baseBranch: string;
+  newBranchName: string;
+  commitMessage: string;
+  prTitle: string;
+  prBody: string;
+  remoteName: string;
   executionMode: ExecutionMode;
   frameworkType: FrameworkType;
   testGenerationMode: TestGenerationMode;
@@ -181,6 +188,22 @@ export interface TestExecutionResponse {
   reportPaths: TestReportPaths;
   failedScenarios: TestExecutionFailedScenario[];
   logTail?: string | null;
+  warnings: string[];
+  errors: string[];
+}
+
+export type GitPrStatus = 'READY' | 'CREATED' | 'FAILED' | 'ERROR';
+
+export interface GitPrResponse {
+  operationId: string;
+  status: GitPrStatus;
+  projectPath: string;
+  baseBranch: string;
+  newBranchName: string;
+  commitSha?: string | null;
+  prUrl?: string | null;
+  changedFiles: string[];
+  commandLog: string[];
   warnings: string[];
   errors: string[];
 }

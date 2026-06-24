@@ -6,6 +6,7 @@ import GeneratedBddPreview from './GeneratedBddPreview';
 import GeneratedFilesTree from './GeneratedFilesTree';
 import FileWritePreview from './FileWritePreview';
 import TestExecutionView from './TestExecutionView';
+import GitPrView from './GitPrView';
 import ExecutionReport from './ExecutionReport';
 import type {
   ApiContract,
@@ -15,6 +16,7 @@ import type {
   ExecutionResult,
   FileWriteResponse,
   TestExecutionResponse,
+  GitPrResponse,
 } from '../types';
 
 const TABS: { id: WorkspaceTab; label: string }[] = [
@@ -25,6 +27,7 @@ const TABS: { id: WorkspaceTab; label: string }[] = [
   { id: 'generated-files', label: 'Generated Files' },
   { id: 'file-write-preview', label: 'File Write Preview' },
   { id: 'test-execution', label: 'Test Execution' },
+  { id: 'git-pr', label: 'Git / PR' },
   { id: 'execution-report', label: 'Execution Report' },
 ];
 
@@ -56,6 +59,10 @@ interface WorkspaceTabsProps {
   testExecutionResult: TestExecutionResponse | null;
   onPreviewTestExecution: () => void;
   onRunTestExecution: () => void;
+  gitPrResult: GitPrResponse | null;
+  canCreateGitPr: boolean;
+  onPreviewGitPr: () => void;
+  onCreateGitPr: () => void;
   onCreateBugDraft: () => void;
   onRerunFailed: () => void;
   onExportReport: () => void;
@@ -89,6 +96,10 @@ export default function WorkspaceTabs({
   testExecutionResult,
   onPreviewTestExecution,
   onRunTestExecution,
+  gitPrResult,
+  canCreateGitPr,
+  onPreviewGitPr,
+  onCreateGitPr,
   onCreateBugDraft,
   onRerunFailed,
   onExportReport,
@@ -161,6 +172,15 @@ export default function WorkspaceTabs({
             isRunning={isRunning}
             onPreview={onPreviewTestExecution}
             onRun={onRunTestExecution}
+          />
+        )}
+        {activeTab === 'git-pr' && (
+          <GitPrView
+            result={gitPrResult}
+            isRunning={isRunning}
+            canCreatePr={canCreateGitPr}
+            onPreview={onPreviewGitPr}
+            onCreate={onCreateGitPr}
           />
         )}
         {activeTab === 'execution-report' && (

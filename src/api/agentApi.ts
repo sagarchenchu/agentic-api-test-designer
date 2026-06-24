@@ -4,6 +4,7 @@ import type {
   ExecutionResult,
   FileWriteResponse,
   GeneratedFile,
+  GitPrResponse,
   RequirementSummary,
   TestCase,
   TestExecutionResponse,
@@ -74,6 +75,19 @@ export interface TestExecutionRequest {
   profile?: string;
   timeoutSeconds?: number;
   environment?: string;
+  dryRun?: boolean;
+}
+
+export interface GitPrRequest {
+  projectPath: string;
+  jiraStoryKey: string;
+  baseBranch?: string;
+  newBranchName?: string;
+  commitMessage?: string;
+  prTitle?: string;
+  prBody?: string;
+  remoteName?: string;
+  filesToCommit: string[];
   dryRun?: boolean;
 }
 
@@ -163,6 +177,44 @@ export function buildTestExecutionRequest(
     profile: values.mavenProfile,
     timeoutSeconds: values.timeoutSeconds,
     environment,
+    dryRun: false,
+  };
+}
+
+export function deriveFilesToCommit(
+  generatedFiles: GeneratedFile[],
+  fileWritePreview: FileWriteResponse | null
+): string[] {
+  const writtenPaths = fileWritePreview?.results
+    .filter((result) => result.status === 'WRITTEN')
+    .map((result) => result.relativePath) ?? [];
+
+  if (writtenPaths.length > 0) {
+    return [...new Set(writtenPaths)];
+  }
+
+  return generatedFiles.map((file) => file.path);
+}
+
+export function buildGitPrRequest(
+  values: AgentFormValues,
+  filesToCommit: string[]
+): GitPrRequest {
+  const jiraKey = values.jiraStoryKey.trim() || 'STORY-000';
+
+  return {
+    projectPath: values.projectPath,
+    jiraStoryKey: jiraKey,
+    baseBranch: values.baseBranch.trim() || 'main',
+    newBranchName:
+      values.newBranchName.trim() || `feature/${jiraKey}-api-tests`,
+    commitMessage:
+      values.commitMessage.trim() || `Add API automation tests for ${jiraKey}`,
+    prTitle: values.prTitle.trim() || `${jiraKey} Add API automation tests`,
+    prBody:
+      values.prBody.trim() || 'Generated API tests from Jira + Swagger.',
+    remoteName: values.remoteName.trim() || 'origin',
+    filesToCommit,
     dryRun: false,
   };
 }
@@ -290,6 +342,28 @@ export async function getTestExecution(
   executionId: string
 ): Promise<TestExecutionResponse> {
   return apiFetch<TestExecutionResponse>(`/api/agent/test-executions/${executionId}`);
+}
+
+export async function previewGitPr(
+  request: GitPrRequest
+): Promise<GitPrResponse> {
+  return apiFetch<GitPrResponse>('/api/agent/preview-git-pr', {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+}
+
+export async function createGitPr(
+  request: GitPrRequest
+): Promise<GitPrResponse> {
+  return apiFetch<GitPrResponse>('/api/agent/create-git-pr', {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+}
+
+export async function getGitPr(operationId: string): Promise<GitPrResponse> {
+  return apiFetch<GitPrResponse>(`/api/agent/git-pr/${operationId}`);
 }
 
 export async function generateBdd(

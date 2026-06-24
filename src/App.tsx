@@ -10,6 +10,7 @@ import type {
   RequirementSummary,
   TestCase,
   TestExecutionResponse,
+  GitPrResponse,
   TimelineStep,
   WorkspaceTab,
 } from './types';
@@ -30,6 +31,8 @@ import {
   buildAutomationRequest,
   buildFileWriteRequest,
   buildTestExecutionRequest,
+  buildGitPrRequest,
+  deriveFilesToCommit,
   extractContract,
   generateBdd,
   generateAiBdd,
@@ -39,6 +42,8 @@ import {
   writeGeneratedFiles,
   previewTestExecution,
   runTestExecution,
+  previewGitPr,
+  createGitPr,
   generateTestMatrix,
   generateAiTestMatrix,
   runAgent,
@@ -84,6 +89,19 @@ function validateForm(values: AgentFormValues): FormErrors {
   }
 
   return errors;
+}
+
+function applyJiraGitDefaults(values: AgentFormValues): AgentFormValues {
+  const jiraKey = values.jiraStoryKey.trim();
+  if (!jiraKey) {
+    return values;
+  }
+  return {
+    ...values,
+    newBranchName: values.newBranchName || `feature/${jiraKey}-api-tests`,
+    commitMessage: values.commitMessage || `Add API automation tests for ${jiraKey}`,
+    prTitle: values.prTitle || `${jiraKey} Add API automation tests`,
+  };
 }
 
 function delay(ms: number): Promise<void> {
@@ -169,6 +187,8 @@ export default function App() {
   const [fileWritePreview, setFileWritePreview] = useState<FileWriteResponse | null>(null);
   const [canWriteFiles, setCanWriteFiles] = useState(false);
   const [testExecutionResult, setTestExecutionResult] = useState<TestExecutionResponse | null>(null);
+  const [gitPrResult, setGitPrResult] = useState<GitPrResponse | null>(null);
+  const [canCreateGitPr, setCanCreateGitPr] = useState(false);
   const abortRef = useRef(false);
 
   useEffect(() => {
@@ -505,6 +525,8 @@ export default function App() {
     setFileWritePreview(null);
     setCanWriteFiles(false);
     setTestExecutionResult(null);
+    setGitPrResult(null);
+    setCanCreateGitPr(false);
     setBddContent('');
     setGeneratedFiles([]);
     setSelectedFile(null);
@@ -837,6 +859,91 @@ export default function App() {
     }
   };
 
+  const updateGitPrEligibility = (response: GitPrResponse) => {
+    setCanCreateGitPr(
+      response.status === 'READY'
+          && response.errors.length === 0
+          && response.changedFiles.length > 0
+    );
+  };
+
+  const handlePreviewGitPr = async () => {
+    if (!formValues.projectPath.trim()) {
+      setStatusMessage('Project path is required before previewing Git PR.');
+      return;
+    }
+
+    const filesToCommit = deriveFilesToCommit(generatedFiles, fileWritePreview);
+    if (filesToCommit.length === 0) {
+      setStatusMessage('Generate and write automation files before previewing a Git PR.');
+      return;
+    }
+
+    setIsRunning(true);
+    setStatusMessage('Previewing Git branch and PR...');
+
+    try {
+      const response = await previewGitPr(
+        buildGitPrRequest(formValues, filesToCommit)
+      );
+      setGitPrResult(response);
+      updateGitPrEligibility(response);
+      setActiveTab('git-pr');
+      setStatusMessage(`Git PR preview ready (${response.status}).`);
+      setBackendConnected(true);
+    } catch (error) {
+      const message =
+        error instanceof AgentApiError
+          ? `Git PR preview failed: ${error.message}`
+          : 'Git PR preview failed. Backend may be unavailable.';
+      setStatusMessage(message);
+      setCanCreateGitPr(false);
+      setBackendConnected(false);
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  const handleCreateGitPr = async () => {
+    if (!canCreateGitPr || !gitPrResult) {
+      setStatusMessage('Preview Git PR first and resolve errors before creating a pull request.');
+      return;
+    }
+
+    const filesToCommit = deriveFilesToCommit(generatedFiles, fileWritePreview);
+    if (!formValues.projectPath.trim() || filesToCommit.length === 0) {
+      setStatusMessage('Project path and files to commit are required before creating a PR.');
+      return;
+    }
+
+    setIsRunning(true);
+    setStatusMessage('Creating branch, commit, and pull request...');
+
+    try {
+      const response = await createGitPr(
+        buildGitPrRequest(formValues, filesToCommit)
+      );
+      setGitPrResult(response);
+      updateGitPrEligibility(response);
+      setActiveTab('git-pr');
+      setStatusMessage(
+        response.prUrl
+          ? `Pull request created: ${response.prUrl}`
+          : `Git PR operation completed with status ${response.status}.`
+      );
+      setBackendConnected(true);
+    } catch (error) {
+      const message =
+        error instanceof AgentApiError
+          ? `Git PR creation failed: ${error.message}`
+          : 'Git PR creation failed. Backend may be unavailable.';
+      setStatusMessage(message);
+      setBackendConnected(false);
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
   const handlePlaceholder = (action: string) => {
     setStatusMessage(`${action} — placeholder action (not implemented).`);
   };
@@ -863,7 +970,8 @@ export default function App() {
           errors={formErrors}
           isRunning={isRunning}
           onChange={(values) => {
-            setFormValues(values);
+            const nextValues = applyJiraGitDefaults(values);
+            setFormValues(nextValues);
             if (values.executionMode !== formValues.executionMode && !isRunning) {
               resetTimeline(values.executionMode);
             }
@@ -904,6 +1012,10 @@ export default function App() {
             testExecutionResult={testExecutionResult}
             onPreviewTestExecution={handlePreviewTestExecution}
             onRunTestExecution={handleRunTestExecution}
+            gitPrResult={gitPrResult}
+            canCreateGitPr={canCreateGitPr}
+            onPreviewGitPr={handlePreviewGitPr}
+            onCreateGitPr={handleCreateGitPr}
             onCreateBugDraft={() => handlePlaceholder('Create Bug Draft')}
             onRerunFailed={() => handlePlaceholder('Re-run Failed Tests')}
             onExportReport={() => handlePlaceholder('Export Report')}
