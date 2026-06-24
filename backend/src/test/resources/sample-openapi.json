@@ -1,0 +1,136 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Payments API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/payments": {
+      "post": {
+        "operationId": "createPayment",
+        "summary": "Create payment",
+        "description": "Creates a payment transaction",
+        "tags": ["Payments"],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "Bearer {{token}}"
+            }
+          },
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "application/json"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePaymentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatePaymentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/orders/{orderId}": {
+      "get": {
+        "operationId": "getOrder",
+        "summary": "Get order",
+        "description": "Retrieves an order by ID",
+        "tags": ["Orders"],
+        "parameters": [
+          {
+            "name": "orderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "ORD-123"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "orderId": { "type": "string" },
+                    "status": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CreatePaymentRequest": {
+        "type": "object",
+        "required": ["accountId", "amount", "currency"],
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "description": "Account identifier",
+            "example": "ACC-001"
+          },
+          "amount": {
+            "type": "number",
+            "minimum": 0.01,
+            "example": 100.00
+          },
+          "currency": {
+            "type": "string",
+            "enum": ["USD", "EUR", "INR"],
+            "example": "USD"
+          }
+        }
+      },
+      "CreatePaymentResponse": {
+        "type": "object",
+        "required": ["paymentId", "status"],
+        "properties": {
+          "paymentId": { "type": "string" },
+          "status": { "type": "string" }
+        }
+      }
+    }
+  }
+}

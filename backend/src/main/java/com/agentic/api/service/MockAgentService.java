@@ -1,5 +1,6 @@
 package com.agentic.api.service;
 
+import com.agentic.api.exception.ContractNotFoundException;
 import com.agentic.api.model.*;
 import org.springframework.stereotype.Service;
 
@@ -11,10 +12,32 @@ import java.util.stream.Collectors;
 public class MockAgentService implements AgentService {
 
     private final Map<String, AgentRunResponse> runs = new ConcurrentHashMap<>();
+    private final OpenApiParserService openApiParserService;
+    private final ContractTestMatrixService contractTestMatrixService;
+
+    public MockAgentService(
+            OpenApiParserService openApiParserService,
+            ContractTestMatrixService contractTestMatrixService
+    ) {
+        this.openApiParserService = openApiParserService;
+        this.contractTestMatrixService = contractTestMatrixService;
+    }
 
     @Override
-    public List<TestCaseDto> generateTestMatrix(AgentRequest request) {
-        return mockTestCases();
+    public TestMatrixResponse generateTestMatrix(AgentRequest request) {
+        Optional<ApiContractDto> contract = openApiParserService.tryExtractContract(request);
+        if (contract.isPresent()) {
+            return contractTestMatrixService.generateFromContract(contract.get());
+        }
+        return new TestMatrixResponse(
+                mockTestCases(),
+                List.of("Swagger contract could not be parsed; using default mock test cases")
+        );
+    }
+
+    @Override
+    public ApiContractDto extractContract(AgentRequest request) {
+        return openApiParserService.extractContract(request);
     }
 
     @Override
@@ -52,7 +75,7 @@ public class MockAgentService implements AgentService {
         response.setTimelineSteps(buildTimelineSteps(mode));
 
         if (shouldIncludeTestMatrix(mode)) {
-            response.setTestCases(mockTestCases());
+            response.setTestCases(generateTestMatrix(request).getTestCases());
         }
 
         if (shouldIncludeBdd(mode)) {
