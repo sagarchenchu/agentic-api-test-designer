@@ -17,4 +17,10 @@ public interface AgentService {
     AgentRunResponse getRun(String runId);
 
     ApiContractDto extractContract(AgentRequest request);
+
+    AutomationGenerationResponse generateAiBdd(AutomationGenerationRequest request);
+
+    AutomationGenerationResponse generateAiFiles(AutomationGenerationRequest request);
+
+    AutomationGenerationResponse generateAiAutomationPackage(AutomationGenerationRequest request);
 }

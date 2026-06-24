@@ -15,15 +15,18 @@ public class MockAgentService implements AgentService {
     private final OpenApiParserService openApiParserService;
     private final ContractTestMatrixService contractTestMatrixService;
     private final AiTestMatrixService aiTestMatrixService;
+    private final AutomationGenerationService automationGenerationService;
 
     public MockAgentService(
             OpenApiParserService openApiParserService,
             ContractTestMatrixService contractTestMatrixService,
-            AiTestMatrixService aiTestMatrixService
+            AiTestMatrixService aiTestMatrixService,
+            AutomationGenerationService automationGenerationService
     ) {
         this.openApiParserService = openApiParserService;
         this.contractTestMatrixService = contractTestMatrixService;
         this.aiTestMatrixService = aiTestMatrixService;
+        this.automationGenerationService = automationGenerationService;
     }
 
     @Override
@@ -53,6 +56,21 @@ public class MockAgentService implements AgentService {
     @Override
     public ApiContractDto extractContract(AgentRequest request) {
         return openApiParserService.extractContract(request);
+    }
+
+    @Override
+    public AutomationGenerationResponse generateAiBdd(AutomationGenerationRequest request) {
+        return automationGenerationService.generateAiBdd(request);
+    }
+
+    @Override
+    public AutomationGenerationResponse generateAiFiles(AutomationGenerationRequest request) {
+        return automationGenerationService.generateAiFiles(request);
+    }
+
+    @Override
+    public AutomationGenerationResponse generateAiAutomationPackage(AutomationGenerationRequest request) {
+        return automationGenerationService.generateAiAutomationPackage(request);
     }
 
     @Override
