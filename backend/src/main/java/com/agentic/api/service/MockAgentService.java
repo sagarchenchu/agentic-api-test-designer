@@ -29,11 +29,15 @@ public class MockAgentService implements AgentService {
 
     @Override
     public GeneratedFilesDto generateFiles(AgentRequest request) {
-        return new GeneratedFilesDto(buildGeneratedFiles(
-                request.getJiraStoryKey(),
-                request.getHttpMethod(),
-                request.getEndpointPath()
-        ));
+        GeneratedBddDto bdd = generateBdd(request);
+        return new GeneratedFilesDto(
+                buildGeneratedFiles(
+                        request.getJiraStoryKey(),
+                        request.getHttpMethod(),
+                        request.getEndpointPath()
+                ),
+                bdd
+        );
     }
 
     @Override

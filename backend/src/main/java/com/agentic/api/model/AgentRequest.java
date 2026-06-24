@@ -26,6 +26,10 @@ public class AgentRequest {
     private String endpointPath;
 
     @NotBlank(message = "httpMethod is required")
+    @Pattern(
+            regexp = "^(?i)(GET|POST|PUT|PATCH|DELETE)$",
+            message = "httpMethod must be one of GET, POST, PUT, PATCH, DELETE"
+    )
     private String httpMethod;
 
     @Valid

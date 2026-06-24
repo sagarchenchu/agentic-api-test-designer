@@ -55,13 +55,15 @@ class AgentControllerTest {
     }
 
     @Test
-    void generateFilesReturnsFileTree() throws Exception {
+    void generateFilesReturnsFileTreeAndBdd() throws Exception {
         mockMvc.perform(post("/api/agent/generate-files")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.files", hasSize(7)))
-                .andExpect(jsonPath("$.files[0].path", containsString("payments")));
+                .andExpect(jsonPath("$.files[0].path", containsString("payments")))
+                .andExpect(jsonPath("$.generatedBdd.content", containsString("@PAY-1234")))
+                .andExpect(jsonPath("$.generatedBdd.downloadFilename", is("payments.feature")));
     }
 
     @Test
@@ -117,6 +119,18 @@ class AgentControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.fieldErrors.credentialRef", notNullValue()));
+    }
+
+    @Test
+    void rejectsInvalidHttpMethod() throws Exception {
+        AgentRequest request = validRequest();
+        request.setHttpMethod("TRACE");
+
+        mockMvc.perform(post("/api/agent/run")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors.httpMethod", notNullValue()));
     }
 
     private AgentRequest validRequest() {

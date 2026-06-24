@@ -29,6 +29,7 @@ export interface GeneratedBddResponse {
 
 export interface GeneratedFilesResponse {
   files: GeneratedFile[];
+  generatedBdd: GeneratedBddResponse;
 }
 
 export interface AgentRunResponse {

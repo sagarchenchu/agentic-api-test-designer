@@ -94,7 +94,7 @@ curl -X POST http://localhost:8080/api/agent/run \
 | GET | `/api/agent/health` | Health check |
 | POST | `/api/agent/generate-test-matrix` | Returns mock test cases |
 | POST | `/api/agent/generate-bdd` | Returns dynamic BDD feature |
-| POST | `/api/agent/generate-files` | Returns generated file tree |
+| POST | `/api/agent/generate-files` | Returns generated file tree and BDD metadata |
 | POST | `/api/agent/run` | Full agent run (mock) |
 | GET | `/api/agent/runs/{runId}` | Retrieve a stored run |
 
