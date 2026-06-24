@@ -6,18 +6,14 @@ A web UI for generating API test cases and BDD automation from Jira stories and 
 
 Agentic API Test Designer helps QA engineers and automation developers turn Jira requirements and API contracts into structured test coverage, Cucumber feature files, and automation scaffolding — then execute tests and review results in one place.
 
-## Current phase: Git branch commit and PR automation (Phase 8)
+## Current phase: Jira story fetch and result update integration (Phase 9)
 
 This repository includes:
 
 - **React frontend** — dashboard UI with form validation, tabs, and agent timeline
 - **Spring Boot backend** — REST API under `/api/agent` with Swagger/OpenAPI parsing and optional OpenAI integration
 
-Phase 8 adds **safe Git branch, commit, push, and GitHub PR automation** for generated automation files. Preview validates the repo and planned commands without modifying git. Create checks out the base branch, stages only allowed `filesToCommit`, commits, pushes, and opens a PR via `gh` CLI. Jira integration is **not implemented yet** (planned Phase 9).
-
-Phase 7 added Maven/Serenity test execution. Phase 6 added safe generated-file writes. Phase 5 added AI-assisted BDD and automation file generation. OpenAI is **optional**.
-
-There is **no real integration** yet with Jira.
+Phase 9 adds **Jira Cloud integration** to fetch story details and post generated test/execution/PR summaries back as Jira comments. Jira is **disabled by default** — no token is required for CI. Phase 8 added Git/PR automation. OpenAI remains **optional**.
 
 ### OpenAI setup (optional)
 
@@ -33,6 +29,28 @@ openai.model=gpt-4.1-mini
 ```
 
 By default `openai.enabled=false` and no API key is required.
+
+### Jira setup (optional)
+
+Jira integration is **disabled by default**. Enable it only when you want live Jira fetch/comment features:
+
+```bash
+export JIRA_ENABLED=true
+export JIRA_BASE_URL=https://your-company.atlassian.net
+export JIRA_EMAIL=qa-automation@company.com
+export JIRA_API_TOKEN=your-atlassian-api-token
+```
+
+In `backend/src/main/resources/application.properties` or environment:
+
+```properties
+jira.enabled=true
+jira.base-url=${JIRA_BASE_URL}
+jira.email=${JIRA_EMAIL}
+jira.api-token=${JIRA_API_TOKEN}
+```
+
+The API token is never logged or returned in API responses. Do not send tokens from the frontend.
 
 ### Swagger parser limitations
 
@@ -59,7 +77,9 @@ By default `openai.enabled=false` and no API key is required.
 - **Preview Test Execution** and **Run Maven Tests** buttons with Test Tag, Maven Profile, and Timeout controls
 - **Git / PR** tab with branch/commit/PR preview, command log, commit SHA, PR URL, and warnings/errors
 - **Preview Git PR** and **Create Pull Request** buttons with Base Branch, New Branch, Commit Message, PR Title, and Remote controls
-- `filesToCommit` is derived from written file results (`WRITTEN`) or generated file paths
+- **Fetch Jira Story**, **Post Jira Summary**, and **Link PR to Jira** buttons near the Jira Story Key field
+- Jira config status shown in the left panel (enabled/configured only — no secrets)
+- Fetched Jira story populates story text, acceptance criteria, and requirement summary fields
 - AI matrix and automation generation show source, warnings, and assumptions when available
 - Inline form validation (frontend and backend)
 - Agent timeline with execution-mode-aware step control
@@ -278,6 +298,43 @@ curl -X POST http://localhost:8080/api/agent/generate-ai-automation-package \
   }'
 ```
 
+### Fetch Jira story
+
+```bash
+curl -X POST http://localhost:8080/api/agent/jira/fetch-story \
+  -H "Content-Type: application/json" \
+  -d '{ "jiraStoryKey": "PAY-1234" }'
+```
+
+### Post Jira summary
+
+```bash
+curl -X POST http://localhost:8080/api/agent/jira/post-summary \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jiraStoryKey": "PAY-1234",
+    "testCaseCount": 12,
+    "bddGenerated": true,
+    "filesWritten": 7,
+    "executionStatus": "PASSED",
+    "passed": 12,
+    "failed": 0,
+    "prUrl": "https://github.com/org/repo/pull/99",
+    "serenityReportPath": "target/site/serenity/index.html"
+  }'
+```
+
+### Link PR to Jira
+
+```bash
+curl -X POST http://localhost:8080/api/agent/jira/link-pr \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jiraStoryKey": "PAY-1234",
+    "prUrl": "https://github.com/org/repo/pull/99"
+  }'
+```
+
 ### Run agent
 
 ```bash
@@ -315,6 +372,10 @@ curl -X POST http://localhost:8080/api/agent/run \
 | POST | `/api/agent/preview-git-pr` | Validate git repo, branch/files, and preview PR commands (no git mutations) |
 | POST | `/api/agent/create-git-pr` | Checkout base, commit allowed files, push branch, create GitHub PR via `gh` |
 | GET | `/api/agent/git-pr/{operationId}` | Retrieve a stored Git PR operation result |
+| GET | `/api/agent/jira/config/status` | Jira enabled/configured status (no secrets) |
+| POST | `/api/agent/jira/fetch-story` | Fetch Jira issue by key and extract story details |
+| POST | `/api/agent/jira/post-summary` | Post generated test/execution summary comment to Jira |
+| POST | `/api/agent/jira/link-pr` | Post pull request link comment to Jira |
 | POST | `/api/agent/generate-bdd` | Returns dynamic BDD feature (legacy mock) |
 | POST | `/api/agent/generate-files` | Returns file tree + BDD metadata |
 | POST | `/api/agent/run` | Full agent run (mock) |
@@ -330,7 +391,8 @@ curl -X POST http://localhost:8080/api/agent/run \
 4. Phase 6 previews and writes generated files safely into allowed test folders under `projectPath`
 5. Phase 7 runs Maven via `ProcessBuilder` argument lists (no shell), parses Surefire/Failsafe/Cucumber/Serenity reports, and stores execution results
 6. Phase 8 runs git/gh via `ProcessBuilder` argument lists, stages only allowed generated test files, blocks unrelated working tree changes, and stores PR operation results
-7. If AI is disabled or fails, deterministic BDD and scaffold files are used automatically
+7. Phase 9 fetches Jira stories via REST API, extracts acceptance criteria from ADF/plain text, and posts ADF summary/PR comments back to Jira
+8. If AI is disabled or fails, deterministic BDD and scaffold files are used automatically
 
 ### File write safety guardrails
 
@@ -374,7 +436,19 @@ curl -X POST http://localhost:8080/api/agent/run \
 - Git/gh commands use `ProcessBuilder` argument lists — never shell strings
 - Operation results are stored in memory by `operationId`
 
-Future phases can add Jira integration and deeper Serenity parsing:
+### Jira integration safety guardrails
+
+- `jira.enabled=false` by default; CI does not require Jira env vars
+- `jira.api-token` is never logged or returned in API responses
+- Frontend cannot submit raw Jira tokens — credentials are server-side only
+- Jira base URL comes only from server config (no per-request arbitrary URLs in Phase 9)
+- Jira keys must match `^[A-Z][A-Z0-9]+-\d+$` (normalized to uppercase when safe)
+- Story fetch uses `GET /rest/api/3/issue/{issueKey}` with Basic Auth (`email:apiToken`)
+- Comments use Jira Cloud ADF via `POST /rest/api/3/issue/{issueKey}/comment`
+- Acceptance criteria extracted from description sections titled "Acceptance Criteria" or "AC"
+- Backend tests mock the Jira client — no real Jira calls in CI
+
+Future phases can add production hardening, auth, history, and deployment:
 
 ```json
 {
@@ -387,7 +461,7 @@ Future phases can add Jira integration and deeper Serenity parsing:
 
 ## Next phase
 
-- Real Jira integration (Phase 9)
+- Production hardening, auth, run history, and deployment (Phase 10)
 - Deeper Serenity report parsing
 
 ## Tech stack
@@ -408,7 +482,7 @@ backend/                  # Spring Boot backend
   src/main/java/com/agentic/api/
     controller/           # REST controllers
     model/                # DTOs (incl. ApiContractDto)
-    service/              # FileWriteService, TestExecutionService, GitPrService, AutomationGenerationService
+    service/              # FileWriteService, TestExecutionService, GitPrService, JiraStoryService
 ```
 
 ## License

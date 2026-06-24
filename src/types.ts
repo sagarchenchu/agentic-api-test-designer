@@ -80,6 +80,37 @@ export interface FormErrors {
   credentialRef?: string;
 }
 
+export interface JiraConfigStatus {
+  enabled: boolean;
+  configured: boolean;
+  baseUrl?: string | null;
+  message?: string | null;
+}
+
+export interface JiraStoryDetails {
+  jiraStoryKey: string;
+  summary: string;
+  description: string;
+  acceptanceCriteria: string[];
+  status: string;
+  issueType: string;
+  priority: string;
+  labels: string[];
+  components: string[];
+  epicKey?: string | null;
+  url: string;
+  warnings: string[];
+}
+
+export interface JiraOperationResponse {
+  status: string;
+  jiraStoryKey: string;
+  url?: string | null;
+  message?: string | null;
+  warnings: string[];
+  errors: string[];
+}
+
 export interface RequirementSummary {
   jiraKey: string;
   endpoint: string;

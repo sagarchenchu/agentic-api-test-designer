@@ -1,16 +1,21 @@
 import { useState } from 'react';
-import type { AgentFormValues, FormErrors } from '../types';
+import type { AgentFormValues, FormErrors, JiraConfigStatus, JiraStoryDetails } from '../types';
 import KeyValueHeadersEditor from './KeyValueHeadersEditor';
 
 interface AgentInputPanelProps {
   values: AgentFormValues;
   errors: FormErrors;
   isRunning: boolean;
+  jiraConfigStatus: JiraConfigStatus | null;
+  jiraStoryDetails: JiraStoryDetails | null;
   onChange: (values: AgentFormValues) => void;
   onRunAgent: () => void;
   onGenerateMatrix: () => void;
   onExtractContract: () => void;
   onGenerateAutomationPackage: () => void;
+  onFetchJiraStory: () => void;
+  onPostJiraSummary: () => void;
+  onLinkPrToJira: () => void;
   onClear: () => void;
 }
 
@@ -18,11 +23,16 @@ export default function AgentInputPanel({
   values,
   errors,
   isRunning,
+  jiraConfigStatus,
+  jiraStoryDetails,
   onChange,
   onRunAgent,
   onGenerateMatrix,
   onExtractContract,
   onGenerateAutomationPackage,
+  onFetchJiraStory,
+  onPostJiraSummary,
+  onLinkPrToJira,
   onClear,
 }: AgentInputPanelProps) {
   const [swaggerJsonOpen, setSwaggerJsonOpen] = useState(false);
@@ -59,6 +69,59 @@ export default function AgentInputPanel({
           />
           {errors.jiraStoryKey && (
             <span className="form-error">{errors.jiraStoryKey}</span>
+          )}
+          <div className="form-actions form-actions--inline">
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={onFetchJiraStory}
+              disabled={isRunning || !values.jiraStoryKey.trim()}
+            >
+              Fetch Jira Story
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={onPostJiraSummary}
+              disabled={isRunning || !values.jiraStoryKey.trim()}
+            >
+              Post Jira Summary
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={onLinkPrToJira}
+              disabled={isRunning || !values.jiraStoryKey.trim()}
+            >
+              Link PR to Jira
+            </button>
+          </div>
+          {jiraConfigStatus && (
+            <span className="form-hint">
+              Jira: {jiraConfigStatus.enabled && jiraConfigStatus.configured
+                ? `connected (${jiraConfigStatus.baseUrl})`
+                : jiraConfigStatus.message ?? 'not configured'}
+            </span>
+          )}
+          {jiraStoryDetails && (
+            <div className="card-inline jira-story-meta">
+              <p>
+                <strong>{jiraStoryDetails.summary}</strong>
+              </p>
+              <p className="mono">
+                {jiraStoryDetails.status} · {jiraStoryDetails.issueType} · {jiraStoryDetails.priority}
+              </p>
+              {jiraStoryDetails.url && (
+                <p>
+                  <a href={jiraStoryDetails.url} target="_blank" rel="noreferrer">
+                    {jiraStoryDetails.url}
+                  </a>
+                </p>
+              )}
+              {jiraStoryDetails.labels.length > 0 && (
+                <p>Labels: {jiraStoryDetails.labels.join(', ')}</p>
+              )}
+            </div>
           )}
         </div>
 

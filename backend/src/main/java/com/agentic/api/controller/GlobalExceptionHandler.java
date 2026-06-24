@@ -45,4 +45,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Map.of("error", ex.getMessage()));
     }
+
+    @ExceptionHandler(com.agentic.api.exception.JiraNotAvailableException.class)
+    public ResponseEntity<Map<String, String>> handleJiraNotAvailable(
+            com.agentic.api.exception.JiraNotAvailableException ex
+    ) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(Map.of("error", ex.getMessage()));
+    }
 }
