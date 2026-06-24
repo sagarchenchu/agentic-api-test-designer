@@ -6,18 +6,18 @@ A web UI for generating API test cases and BDD automation from Jira stories and 
 
 Agentic API Test Designer helps QA engineers and automation developers turn Jira requirements and API contracts into structured test coverage, Cucumber feature files, and automation scaffolding — then execute tests and review results in one place.
 
-## Current phase: generated file write and diff preview (Phase 6)
+## Current phase: Maven test execution and report parsing (Phase 7)
 
 This repository includes:
 
 - **React frontend** — dashboard UI with form validation, tabs, and agent timeline
 - **Spring Boot backend** — REST API under `/api/agent` with Swagger/OpenAPI parsing and optional OpenAI integration
 
-Phase 6 adds **safe generated-file write support** with preview, simple unified diff, and guarded writes to a local automation project path. Maven/test execution is **not implemented yet**.
+Phase 7 adds **safe Maven/Serenity test execution** with preview, ProcessBuilder-based command execution, timeout handling, log capture, and Surefire/Failsafe/Cucumber/Serenity report parsing. Git commit/PR automation is **not implemented yet**.
 
-Phase 5 added AI-assisted BDD and automation file generation. OpenAI is **optional** — when disabled or unavailable, the system falls back to deterministic BDD and scaffold files.
+Phase 6 added safe generated-file writes. Phase 5 added AI-assisted BDD and automation file generation. OpenAI is **optional**.
 
-There is **no real integration** yet with Jira or test execution.
+There is **no real integration** yet with Jira or Git/PR automation.
 
 ### OpenAI setup (optional)
 

@@ -27,4 +27,10 @@ public interface AgentService {
     FileWriteResponse previewFileWrite(FileWriteRequest request);
 
     FileWriteResponse writeGeneratedFiles(FileWriteRequest request);
+
+    TestExecutionResponse previewTestExecution(TestExecutionRequest request);
+
+    TestExecutionResponse runTestExecution(TestExecutionRequest request);
+
+    TestExecutionResponse getTestExecution(String executionId);
 }

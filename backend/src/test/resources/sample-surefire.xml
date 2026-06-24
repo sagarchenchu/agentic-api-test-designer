@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="PaymentApiTest" tests="12" failures="1" errors="0" skipped="2" time="4.2">
+  <testcase name="createPayment" classname="PaymentApiTest" time="0.5"/>
+</testsuite>

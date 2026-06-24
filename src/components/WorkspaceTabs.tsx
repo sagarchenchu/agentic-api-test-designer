@@ -5,6 +5,7 @@ import TestCaseMatrix from './TestCaseMatrix';
 import GeneratedBddPreview from './GeneratedBddPreview';
 import GeneratedFilesTree from './GeneratedFilesTree';
 import FileWritePreview from './FileWritePreview';
+import TestExecutionView from './TestExecutionView';
 import ExecutionReport from './ExecutionReport';
 import type {
   ApiContract,
@@ -13,6 +14,7 @@ import type {
   GeneratedFile,
   ExecutionResult,
   FileWriteResponse,
+  TestExecutionResponse,
 } from '../types';
 
 const TABS: { id: WorkspaceTab; label: string }[] = [
@@ -22,6 +24,7 @@ const TABS: { id: WorkspaceTab; label: string }[] = [
   { id: 'generated-bdd', label: 'Generated BDD' },
   { id: 'generated-files', label: 'Generated Files' },
   { id: 'file-write-preview', label: 'File Write Preview' },
+  { id: 'test-execution', label: 'Test Execution' },
   { id: 'execution-report', label: 'Execution Report' },
 ];
 
@@ -50,6 +53,9 @@ interface WorkspaceTabsProps {
   fileWritePreview: FileWriteResponse | null;
   canWriteFiles: boolean;
   isRunning: boolean;
+  testExecutionResult: TestExecutionResponse | null;
+  onPreviewTestExecution: () => void;
+  onRunTestExecution: () => void;
   onCreateBugDraft: () => void;
   onRerunFailed: () => void;
   onExportReport: () => void;
@@ -80,6 +86,9 @@ export default function WorkspaceTabs({
   fileWritePreview,
   canWriteFiles,
   isRunning,
+  testExecutionResult,
+  onPreviewTestExecution,
+  onRunTestExecution,
   onCreateBugDraft,
   onRerunFailed,
   onExportReport,
@@ -144,6 +153,14 @@ export default function WorkspaceTabs({
             canWrite={canWriteFiles}
             isRunning={isRunning}
             onWriteFiles={onWriteFiles}
+          />
+        )}
+        {activeTab === 'test-execution' && (
+          <TestExecutionView
+            result={testExecutionResult}
+            isRunning={isRunning}
+            onPreview={onPreviewTestExecution}
+            onRun={onRunTestExecution}
           />
         )}
         {activeTab === 'execution-report' && (

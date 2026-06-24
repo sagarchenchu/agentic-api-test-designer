@@ -6,6 +6,7 @@ import type {
   GeneratedFile,
   RequirementSummary,
   TestCase,
+  TestExecutionResponse,
   TimelineStep,
 } from '../types';
 
@@ -63,6 +64,17 @@ export interface FileWriteRequest {
   writeMode?: 'preview' | 'write';
   overwriteExisting?: boolean;
   createBackup?: boolean;
+}
+
+export interface TestExecutionRequest {
+  projectPath: string;
+  commandType?: string;
+  mavenCommand?: string;
+  testTag?: string;
+  profile?: string;
+  timeoutSeconds?: number;
+  environment?: string;
+  dryRun?: boolean;
 }
 
 export interface AgentRunResponse {
@@ -132,6 +144,26 @@ export function buildFileWriteRequest(
     files,
     overwriteExisting: values.overwriteExisting,
     createBackup: values.createBackup,
+  };
+}
+
+export function buildTestExecutionRequest(
+  values: AgentFormValues,
+  environment = 'QA'
+): TestExecutionRequest {
+  const jiraKey = values.jiraStoryKey.trim();
+  const testTag =
+    values.testTag.trim() || (jiraKey ? `@${jiraKey}` : '');
+
+  return {
+    projectPath: values.projectPath,
+    commandType: 'MAVEN',
+    mavenCommand: 'mvn clean verify',
+    testTag,
+    profile: values.mavenProfile,
+    timeoutSeconds: values.timeoutSeconds,
+    environment,
+    dryRun: false,
   };
 }
 
@@ -234,6 +266,30 @@ export async function writeGeneratedFiles(
     method: 'POST',
     body: JSON.stringify(request),
   });
+}
+
+export async function previewTestExecution(
+  request: TestExecutionRequest
+): Promise<TestExecutionResponse> {
+  return apiFetch<TestExecutionResponse>('/api/agent/preview-test-execution', {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+}
+
+export async function runTestExecution(
+  request: TestExecutionRequest
+): Promise<TestExecutionResponse> {
+  return apiFetch<TestExecutionResponse>('/api/agent/run-test-execution', {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+}
+
+export async function getTestExecution(
+  executionId: string
+): Promise<TestExecutionResponse> {
+  return apiFetch<TestExecutionResponse>(`/api/agent/test-executions/${executionId}`);
 }
 
 export async function generateBdd(

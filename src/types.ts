@@ -34,6 +34,7 @@ export type WorkspaceTab =
   | 'generated-bdd'
   | 'generated-files'
   | 'file-write-preview'
+  | 'test-execution'
   | 'execution-report';
 
 export interface HeaderEntry {
@@ -55,6 +56,9 @@ export interface AgentFormValues {
   projectPath: string;
   overwriteExisting: boolean;
   createBackup: boolean;
+  testTag: string;
+  mavenProfile: string;
+  timeoutSeconds: number;
   executionMode: ExecutionMode;
   frameworkType: FrameworkType;
   testGenerationMode: TestGenerationMode;
@@ -125,6 +129,58 @@ export interface FileWriteResponse {
   projectPath: string;
   summary: FileWriteSummary;
   results: FileWriteResult[];
+  warnings: string[];
+  errors: string[];
+}
+
+export type TestExecutionStatus =
+  | 'READY'
+  | 'RUNNING'
+  | 'PASSED'
+  | 'FAILED'
+  | 'TIMEOUT'
+  | 'ERROR';
+
+export interface TestExecutionSummary {
+  total: number;
+  passed: number;
+  failed: number;
+  skipped: number;
+  errors: number;
+}
+
+export interface TestReportPaths {
+  surefire?: string | null;
+  failsafe?: string | null;
+  serenity?: string | null;
+  cucumberJson?: string | null;
+}
+
+export interface TestExecutionFailedScenario {
+  scenario: string;
+  expected?: string;
+  actual?: string;
+  rootCause?: string;
+  endpoint?: string;
+  correlationId?: string;
+  responseBody?: string;
+  feature?: string;
+  errorMessage?: string;
+}
+
+export interface TestExecutionResponse {
+  executionId: string;
+  status: TestExecutionStatus;
+  projectPath: string;
+  command: string;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  durationMs: number;
+  exitCode?: number | null;
+  summary: TestExecutionSummary;
+  reportPaths: TestReportPaths;
+  failedScenarios: TestExecutionFailedScenario[];
+  logTail?: string | null;
   warnings: string[];
   errors: string[];
 }

@@ -77,6 +77,21 @@ public class AgentController {
         return agentService.writeGeneratedFiles(request);
     }
 
+    @PostMapping("/preview-test-execution")
+    public TestExecutionResponse previewTestExecution(@Valid @RequestBody TestExecutionRequest request) {
+        return agentService.previewTestExecution(request);
+    }
+
+    @PostMapping("/run-test-execution")
+    public TestExecutionResponse runTestExecution(@Valid @RequestBody TestExecutionRequest request) {
+        return agentService.runTestExecution(request);
+    }
+
+    @GetMapping("/test-executions/{executionId}")
+    public TestExecutionResponse getTestExecution(@PathVariable String executionId) {
+        return agentService.getTestExecution(executionId);
+    }
+
     @PostMapping("/run")
     public AgentRunResponse runAgent(@Valid @RequestBody AgentRequest request) {
         return agentService.runAgent(request);

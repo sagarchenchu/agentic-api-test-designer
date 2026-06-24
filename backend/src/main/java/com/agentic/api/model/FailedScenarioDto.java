@@ -9,6 +9,8 @@ public class FailedScenarioDto {
     private String endpoint;
     private String correlationId;
     private String responseBody;
+    private String feature;
+    private String errorMessage;
 
     public String getScenario() {
         return scenario;
@@ -64,5 +66,21 @@ public class FailedScenarioDto {
 
     public void setResponseBody(String responseBody) {
         this.responseBody = responseBody;
+    }
+
+    public String getFeature() {
+        return feature;
+    }
+
+    public void setFeature(String feature) {
+        this.feature = feature;
+    }
+
+    public String getErrorMessage() {
+        return errorMessage;
+    }
+
+    public void setErrorMessage(String errorMessage) {
+        this.errorMessage = errorMessage;
     }
 }

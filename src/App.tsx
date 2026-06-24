@@ -9,6 +9,7 @@ import type {
   GeneratedFile,
   RequirementSummary,
   TestCase,
+  TestExecutionResponse,
   TimelineStep,
   WorkspaceTab,
 } from './types';
@@ -28,6 +29,7 @@ import {
   formValuesToRequest,
   buildAutomationRequest,
   buildFileWriteRequest,
+  buildTestExecutionRequest,
   extractContract,
   generateBdd,
   generateAiBdd,
@@ -35,6 +37,8 @@ import {
   generateAiAutomationPackage,
   previewFileWrite,
   writeGeneratedFiles,
+  previewTestExecution,
+  runTestExecution,
   generateTestMatrix,
   generateAiTestMatrix,
   runAgent,
@@ -164,6 +168,7 @@ export default function App() {
   const [backendConnected, setBackendConnected] = useState<boolean | null>(null);
   const [fileWritePreview, setFileWritePreview] = useState<FileWriteResponse | null>(null);
   const [canWriteFiles, setCanWriteFiles] = useState(false);
+  const [testExecutionResult, setTestExecutionResult] = useState<TestExecutionResponse | null>(null);
   const abortRef = useRef(false);
 
   useEffect(() => {
@@ -499,6 +504,7 @@ export default function App() {
     setAutomationAssumptions([]);
     setFileWritePreview(null);
     setCanWriteFiles(false);
+    setTestExecutionResult(null);
     setBddContent('');
     setGeneratedFiles([]);
     setSelectedFile(null);
@@ -771,6 +777,66 @@ export default function App() {
     }
   };
 
+  const handlePreviewTestExecution = async () => {
+    if (!formValues.projectPath.trim()) {
+      setStatusMessage('Project path is required before previewing test execution.');
+      return;
+    }
+
+    setIsRunning(true);
+    setStatusMessage('Previewing Maven test execution...');
+
+    try {
+      const response = await previewTestExecution(
+        buildTestExecutionRequest(formValues, environment)
+      );
+      setTestExecutionResult(response);
+      setActiveTab('test-execution');
+      setStatusMessage(`Test execution preview ready (${response.status}). Command: ${response.command}`);
+      setBackendConnected(true);
+    } catch (error) {
+      const message =
+        error instanceof AgentApiError
+          ? `Test execution preview failed: ${error.message}`
+          : 'Test execution preview failed. Backend may be unavailable.';
+      setStatusMessage(message);
+      setBackendConnected(false);
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  const handleRunTestExecution = async () => {
+    if (!formValues.projectPath.trim()) {
+      setStatusMessage('Project path is required before running Maven tests.');
+      return;
+    }
+
+    setIsRunning(true);
+    setStatusMessage('Running Maven tests...');
+
+    try {
+      const response = await runTestExecution(
+        buildTestExecutionRequest(formValues, environment)
+      );
+      setTestExecutionResult(response);
+      setActiveTab('test-execution');
+      setStatusMessage(
+        `Maven test execution completed with status ${response.status} (execution ${response.executionId}).`
+      );
+      setBackendConnected(true);
+    } catch (error) {
+      const message =
+        error instanceof AgentApiError
+          ? `Maven test execution failed: ${error.message}`
+          : 'Maven test execution failed. Backend may be unavailable.';
+      setStatusMessage(message);
+      setBackendConnected(false);
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
   const handlePlaceholder = (action: string) => {
     setStatusMessage(`${action} — placeholder action (not implemented).`);
   };
@@ -835,6 +901,9 @@ export default function App() {
             fileWritePreview={fileWritePreview}
             canWriteFiles={canWriteFiles}
             isRunning={isRunning}
+            testExecutionResult={testExecutionResult}
+            onPreviewTestExecution={handlePreviewTestExecution}
+            onRunTestExecution={handleRunTestExecution}
             onCreateBugDraft={() => handlePlaceholder('Create Bug Draft')}
             onRerunFailed={() => handlePlaceholder('Re-run Failed Tests')}
             onExportReport={() => handlePlaceholder('Export Report')}
