@@ -177,6 +177,12 @@ Windows:
 
 Starts reference API + backend, exercises contract extraction, matrix generation, file-write preview, Maven preview, and runs the automation project smoke test.
 
+**Note:** Level 2 scripts call `preview-file-write` only — they do not write into `samples/reference-automation-project`. That keeps the sample project clean on repeated local runs. Actual write behavior is covered in CI by `ReferenceHarnessIntegrationTest` (writes into a temp copy). A future optional flag may enable real writes, for example:
+
+```bash
+WRITE_REFERENCE_FILES=true ./scripts/run-reference-e2e.sh
+```
+
 ### Level 3 — manual secured full flow (demo/release)
 
 Requires optional secrets and integrations:
