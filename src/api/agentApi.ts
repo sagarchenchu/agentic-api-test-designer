@@ -2,6 +2,7 @@ import type {
   AgentFormValues,
   ApiContract,
   ExecutionResult,
+  FileWriteResponse,
   GeneratedFile,
   RequirementSummary,
   TestCase,
@@ -53,6 +54,15 @@ export interface AutomationGenerationResponse {
   assumptions: string[];
   source: string;
   fallbackUsed: boolean;
+}
+
+export interface FileWriteRequest {
+  projectPath: string;
+  files: GeneratedFile[];
+  /** Informational only — each endpoint enforces preview vs write server-side. */
+  writeMode?: 'preview' | 'write';
+  overwriteExisting?: boolean;
+  createBackup?: boolean;
 }
 
 export interface AgentRunResponse {
@@ -110,6 +120,18 @@ export function buildAutomationRequest(
     agentRequest: formValuesToRequest(values),
     apiContract: apiContract ?? undefined,
     testCases: testCases?.length ? testCases : undefined,
+  };
+}
+
+export function buildFileWriteRequest(
+  values: AgentFormValues,
+  files: GeneratedFile[]
+): FileWriteRequest {
+  return {
+    projectPath: values.projectPath,
+    files,
+    overwriteExisting: values.overwriteExisting,
+    createBackup: values.createBackup,
   };
 }
 
@@ -194,6 +216,24 @@ export async function generateAiAutomationPackage(
       body: JSON.stringify(request),
     }
   );
+}
+
+export async function previewFileWrite(
+  request: FileWriteRequest
+): Promise<FileWriteResponse> {
+  return apiFetch<FileWriteResponse>('/api/agent/preview-file-write', {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+}
+
+export async function writeGeneratedFiles(
+  request: FileWriteRequest
+): Promise<FileWriteResponse> {
+  return apiFetch<FileWriteResponse>('/api/agent/write-generated-files', {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
 }
 
 export async function generateBdd(

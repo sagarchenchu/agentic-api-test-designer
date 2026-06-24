@@ -23,4 +23,8 @@ public interface AgentService {
     AutomationGenerationResponse generateAiFiles(AutomationGenerationRequest request);
 
     AutomationGenerationResponse generateAiAutomationPackage(AutomationGenerationRequest request);
+
+    FileWriteResponse previewFileWrite(FileWriteRequest request);
+
+    FileWriteResponse writeGeneratedFiles(FileWriteRequest request);
 }

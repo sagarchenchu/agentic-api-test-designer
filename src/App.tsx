@@ -5,6 +5,7 @@ import type {
   Environment,
   ExecutionResult,
   FormErrors,
+  FileWriteResponse,
   GeneratedFile,
   RequirementSummary,
   TestCase,
@@ -26,11 +27,14 @@ import {
 import {
   formValuesToRequest,
   buildAutomationRequest,
+  buildFileWriteRequest,
   extractContract,
   generateBdd,
   generateAiBdd,
   generateAiFiles,
   generateAiAutomationPackage,
+  previewFileWrite,
+  writeGeneratedFiles,
   generateTestMatrix,
   generateAiTestMatrix,
   runAgent,
@@ -158,6 +162,8 @@ export default function App() {
   const [isRunning, setIsRunning] = useState(false);
   const [statusMessage, setStatusMessage] = useState('Ready');
   const [backendConnected, setBackendConnected] = useState<boolean | null>(null);
+  const [fileWritePreview, setFileWritePreview] = useState<FileWriteResponse | null>(null);
+  const [canWriteFiles, setCanWriteFiles] = useState(false);
   const abortRef = useRef(false);
 
   useEffect(() => {
@@ -491,6 +497,8 @@ export default function App() {
     setMatrixAssumptions([]);
     setAutomationWarnings([]);
     setAutomationAssumptions([]);
+    setFileWritePreview(null);
+    setCanWriteFiles(false);
     setBddContent('');
     setGeneratedFiles([]);
     setSelectedFile(null);
@@ -681,6 +689,88 @@ export default function App() {
     }
   };
 
+  const updateWriteEligibility = (response: FileWriteResponse) => {
+    const blocked = response.summary.blocked > 0 || response.summary.errors > 0;
+    const hasErrors = response.errors.length > 0;
+    setCanWriteFiles(!blocked && !hasErrors);
+  };
+
+  const handlePreviewWrite = async () => {
+    if (!formValues.projectPath.trim()) {
+      setStatusMessage('Project path is required before previewing file writes.');
+      return;
+    }
+    if (generatedFiles.length === 0) {
+      setStatusMessage('Generate automation files before previewing a write.');
+      return;
+    }
+
+    setIsRunning(true);
+    setStatusMessage('Previewing file write to project...');
+
+    try {
+      const response = await previewFileWrite(
+        buildFileWriteRequest(formValues, generatedFiles)
+      );
+      setFileWritePreview(response);
+      updateWriteEligibility(response);
+      setActiveTab('file-write-preview');
+      const warningText = response.warnings.length
+        ? ` Warnings: ${response.warnings.join(' ')}`
+        : '';
+      const errorText = response.errors.length ? ` Errors: ${response.errors.join(' ')}` : '';
+      setStatusMessage(
+        `File write preview ready (${response.summary.create} create, ${response.summary.update} update, ${response.summary.skip} skip, ${response.summary.blocked} blocked).${warningText}${errorText}`
+      );
+      setBackendConnected(true);
+    } catch (error) {
+      const message =
+        error instanceof AgentApiError
+          ? `File write preview failed: ${error.message}`
+          : 'File write preview failed. Backend may be unavailable.';
+      setStatusMessage(message);
+      setBackendConnected(false);
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  const handleWriteFiles = async () => {
+    if (!canWriteFiles || !fileWritePreview) {
+      setStatusMessage('Preview file writes first and resolve blocked/errors before writing.');
+      return;
+    }
+    if (!formValues.projectPath.trim() || generatedFiles.length === 0) {
+      setStatusMessage('Project path and generated files are required before writing.');
+      return;
+    }
+
+    setIsRunning(true);
+    setStatusMessage('Writing generated files to project...');
+
+    try {
+      const response = await writeGeneratedFiles(
+        buildFileWriteRequest(formValues, generatedFiles)
+      );
+      setFileWritePreview(response);
+      updateWriteEligibility(response);
+      setActiveTab('file-write-preview');
+      setStatusMessage(
+        `File write completed (${response.summary.written} written, ${response.summary.skip} skipped, ${response.summary.blocked} blocked, ${response.summary.errors} errors).`
+      );
+      setBackendConnected(true);
+    } catch (error) {
+      const message =
+        error instanceof AgentApiError
+          ? `File write failed: ${error.message}`
+          : 'File write failed. Backend may be unavailable.';
+      setStatusMessage(message);
+      setBackendConnected(false);
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
   const handlePlaceholder = (action: string) => {
     setStatusMessage(`${action} — placeholder action (not implemented).`);
   };
@@ -740,6 +830,11 @@ export default function App() {
             onRegenerateBdd={handleRegenerateBdd}
             onGenerateAiBdd={handleGenerateAiBdd}
             onGenerateAiFiles={handleGenerateAiFiles}
+            onPreviewWrite={handlePreviewWrite}
+            onWriteFiles={handleWriteFiles}
+            fileWritePreview={fileWritePreview}
+            canWriteFiles={canWriteFiles}
+            isRunning={isRunning}
             onCreateBugDraft={() => handlePlaceholder('Create Bug Draft')}
             onRerunFailed={() => handlePlaceholder('Re-run Failed Tests')}
             onExportReport={() => handlePlaceholder('Export Report')}

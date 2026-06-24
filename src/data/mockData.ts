@@ -24,6 +24,8 @@ export const defaultFormValues: AgentFormValues = {
   ],
   credentialRef: '',
   projectPath: '',
+  overwriteExisting: false,
+  createBackup: true,
   executionMode: 'generate-execute',
   frameworkType: 'restassured-cucumber-serenity',
   testGenerationMode: 'deterministic',
