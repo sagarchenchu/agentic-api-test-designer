@@ -68,6 +68,7 @@ export function shouldRunStep(label: string, mode: ExecutionMode): boolean {
     'Read Jira Story',
     'Read Swagger Contract',
     'Extract Requirement',
+    'Generate Test Matrix',
     'Generate BDD',
     'Generate Automation Files',
   ]);
