@@ -6,14 +6,17 @@ A web UI for generating API test cases and BDD automation from Jira stories and 
 
 Agentic API Test Designer helps QA engineers and automation developers turn Jira requirements and API contracts into structured test coverage, Cucumber feature files, and automation scaffolding — then execute tests and review results in one place.
 
-## Current phase: Production hardening, run history, and security controls (Phase 10)
+## Current phase: Reference API and E2E validation harness (Phase 11)
 
 This repository includes:
 
 - **React frontend** — dashboard UI with form validation, tabs, agent timeline, and persisted run history
 - **Spring Boot backend** — REST API under `/api/agent` with H2-backed run history, optional API token auth, and secret masking
+- **Reference samples** — controlled payments API, OpenAPI spec, and target automation project for golden-path validation
 
-Phase 10 adds **persistent run history** (H2, PostgreSQL-ready schema), **optional local API token auth** (`security.enabled=false` by default), **secret masking**, **project path policy**, **risky-operation confirmation** when security is enabled, consistent `ApiErrorResponse` errors, and Docker deployment docs. Phase 9 added Jira integration. OpenAI remains **optional**.
+Phase 11 adds a **reference API + E2E validation harness** so every merge can prove contract parsing, deterministic generation, safe file writes, and Maven preview still work without OpenAI/Jira/Git secrets. See [docs/REFERENCE_E2E.md](docs/REFERENCE_E2E.md).
+
+Phase 10 added **persistent run history**, **optional local API token auth** (`security.enabled=false` by default), **secret masking**, **project path policy**, **risky-operation confirmation** when security is enabled, consistent `ApiErrorResponse` errors, and Docker deployment docs.
 
 ### OpenAI setup (optional)
 
@@ -509,6 +512,15 @@ curl -X POST http://localhost:8080/api/agent/run \
 
 - Deeper Serenity report parsing and optional PostgreSQL datasource profile
 
+## Reference E2E harness
+
+Golden-path validation for merges:
+
+- [docs/REFERENCE_E2E.md](docs/REFERENCE_E2E.md) — reference API, OpenAPI file/URL modes, sample automation project, CI levels, local E2E scripts
+- `samples/reference-api` — controlled payments API on port `9090`
+- `samples/reference-automation-project` — writable Maven target scaffold
+- `scripts/run-reference-e2e.sh` / `scripts/run-reference-e2e.ps1` — local Level 2 validation (no secrets)
+
 ## Tech stack
 
 **Frontend:** React 19, TypeScript, Vite, plain CSS
@@ -528,6 +540,17 @@ backend/                  # Spring Boot backend
     controller/           # REST controllers
     model/                # DTOs (incl. ApiContractDto)
     service/              # RunHistoryService, SecretMaskingService, GitPrService, JiraStoryService
+
+samples/
+  reference-api/          # Golden sample payments API + OpenAPI
+  reference-automation-project/  # Target automation scaffold
+
+docs/
+  REFERENCE_E2E.md        # Reference harness guide
+
+scripts/
+  run-reference-e2e.sh    # Local E2E validation (Linux/macOS)
+  run-reference-e2e.ps1   # Local E2E validation (Windows)
 ```
 
 ## License

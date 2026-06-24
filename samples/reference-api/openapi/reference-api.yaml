@@ -1,0 +1,250 @@
+openapi: 3.0.3
+info:
+  title: Reference Payments API
+  version: 1.0.0
+  description: |
+    Controlled sample API for agentic-api-test-designer E2E validation.
+    Exercises headers, nested request bodies, business rules, and multiple status codes.
+servers:
+  - url: http://localhost:9090
+    description: Local reference API
+tags:
+  - name: Payments
+    description: Payment lifecycle operations
+paths:
+  /api/payments:
+    post:
+      operationId: createPayment
+      summary: Create payment
+      description: Creates a payment transaction with required headers and nested body fields.
+      tags:
+        - Payments
+      parameters:
+        - name: Authorization
+          in: header
+          required: true
+          schema:
+            type: string
+            example: Bearer valid-token
+        - name: X-Correlation-Id
+          in: header
+          required: true
+          schema:
+            type: string
+            example: corr-123
+        - name: X-Client-Id
+          in: header
+          required: true
+          schema:
+            type: string
+            example: web-portal
+        - name: Content-Type
+          in: header
+          required: true
+          schema:
+            type: string
+            example: application/json
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentRequest'
+            example:
+              accountId: ACC-1001
+              amount: 125.50
+              currency: USD
+              paymentMethod:
+                type: CARD
+                token: tok_visa_123
+              billingAddress:
+                line1: 123 Main St
+                city: Phoenix
+                state: AZ
+                zip: "85022"
+              metadata:
+                invoiceId: INV-1234
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+        '400':
+          description: Bad Request — missing or invalid required fields
+        '401':
+          description: Unauthorized — missing or invalid Authorization
+        '403':
+          description: Forbidden — client not allowed
+        '409':
+          description: Conflict — duplicate invoiceId
+        '422':
+          description: Unprocessable Entity — unsupported currency or business validation
+        '500':
+          description: Internal Server Error — simulated failure when X-Client-Id=trigger-500
+  /api/payments/{paymentId}:
+    get:
+      operationId: getPayment
+      summary: Get payment by ID
+      tags:
+        - Payments
+      parameters:
+        - name: paymentId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: PAY-1001
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+        '404':
+          description: Not Found — paymentId does not exist
+  /api/payments/{paymentId}/status:
+    put:
+      operationId: updatePaymentStatus
+      summary: Update payment status
+      tags:
+        - Payments
+      parameters:
+        - name: paymentId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: PAY-1001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePaymentStatusRequest'
+            example:
+              status: CAPTURED
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+        '400':
+          description: Bad Request — missing or invalid status
+        '404':
+          description: Not Found — paymentId does not exist
+components:
+  schemas:
+    CreatePaymentRequest:
+      type: object
+      required:
+        - accountId
+        - amount
+        - currency
+        - paymentMethod
+        - billingAddress
+        - metadata
+      properties:
+        accountId:
+          type: string
+          example: ACC-1001
+        amount:
+          type: number
+          format: double
+          minimum: 0.01
+          example: 125.50
+        currency:
+          type: string
+          enum:
+            - USD
+            - EUR
+            - GBP
+          example: USD
+        paymentMethod:
+          $ref: '#/components/schemas/PaymentMethod'
+        billingAddress:
+          $ref: '#/components/schemas/BillingAddress'
+        metadata:
+          $ref: '#/components/schemas/PaymentMetadata'
+    PaymentMethod:
+      type: object
+      required:
+        - type
+        - token
+      properties:
+        type:
+          type: string
+          enum:
+            - CARD
+            - ACH
+          example: CARD
+        token:
+          type: string
+          example: tok_visa_123
+    BillingAddress:
+      type: object
+      required:
+        - line1
+        - city
+        - state
+        - zip
+      properties:
+        line1:
+          type: string
+          example: 123 Main St
+        city:
+          type: string
+          example: Phoenix
+        state:
+          type: string
+          example: AZ
+        zip:
+          type: string
+          example: "85022"
+    PaymentMetadata:
+      type: object
+      required:
+        - invoiceId
+      properties:
+        invoiceId:
+          type: string
+          example: INV-1234
+    UpdatePaymentStatusRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          example: CAPTURED
+    PaymentResponse:
+      type: object
+      required:
+        - paymentId
+        - status
+      properties:
+        paymentId:
+          type: string
+          example: PAY-1001
+        accountId:
+          type: string
+        amount:
+          type: number
+        currency:
+          type: string
+        status:
+          type: string
+          example: CREATED
+        invoiceId:
+          type: string
+        correlationId:
+          type: string
+        clientId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time

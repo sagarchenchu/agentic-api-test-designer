@@ -2,8 +2,10 @@ package com.agentic.api.service;
 
 import com.agentic.api.exception.ContractNotFoundException;
 import com.agentic.api.model.*;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
@@ -19,10 +21,12 @@ public class OpenApiParserService {
     );
 
     private final ObjectMapper objectMapper;
+    private final ObjectMapper yamlObjectMapper;
     private final RestClient restClient;
 
     public OpenApiParserService(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
+        this.yamlObjectMapper = new ObjectMapper(new YAMLFactory());
         this.restClient = RestClient.create();
     }
 
@@ -79,7 +83,7 @@ public class OpenApiParserService {
     private JsonNode loadSpec(AgentRequest request) {
         try {
             if (request.getSwaggerJson() != null && !request.getSwaggerJson().isBlank()) {
-                return objectMapper.readTree(request.getSwaggerJson());
+                return parseSpecBody(request.getSwaggerJson());
             }
             if (request.getSwaggerUrl() != null && !request.getSwaggerUrl().isBlank()) {
                 String body = restClient.get()
@@ -89,7 +93,7 @@ public class OpenApiParserService {
                 if (body == null || body.isBlank()) {
                     throw new IllegalArgumentException("Swagger URL returned empty response");
                 }
-                return objectMapper.readTree(body);
+                return parseSpecBody(body);
             }
             throw new IllegalArgumentException("Either swaggerJson or swaggerUrl is required");
         } catch (ContractNotFoundException ex) {
@@ -97,6 +101,24 @@ public class OpenApiParserService {
         } catch (Exception ex) {
             throw new IllegalArgumentException("Failed to load OpenAPI specification: " + ex.getMessage(), ex);
         }
+    }
+
+    private JsonNode parseSpecBody(String body) throws JsonProcessingException {
+        try {
+            return objectMapper.readTree(body);
+        } catch (JsonProcessingException jsonError) {
+            if (looksLikeYaml(body)) {
+                return yamlObjectMapper.readTree(body);
+            }
+            throw jsonError;
+        }
+    }
+
+    private boolean looksLikeYaml(String body) {
+        String trimmed = body.stripLeading();
+        return trimmed.startsWith("openapi:")
+                || trimmed.startsWith("swagger:")
+                || (trimmed.contains(":\n") && !trimmed.startsWith("{"));
     }
 
     private Map.Entry<String, JsonNode> findMatchingPath(JsonNode paths, String userPath, String method) {
