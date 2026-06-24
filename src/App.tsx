@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type {
   AgentFormValues,
   Environment,
@@ -22,6 +22,15 @@ import {
   buildExecutionResult,
   bddDownloadFilename,
 } from './data/mockData';
+import {
+  formValuesToRequest,
+  generateBdd,
+  generateTestMatrix,
+  runAgent,
+  isBackendAvailable,
+  AgentApiError,
+} from './api/agentApi';
+import type { AgentRunResponse } from './api/agentApi';
 import Header from './components/Header';
 import AgentInputPanel from './components/AgentInputPanel';
 import WorkspaceTabs from './components/WorkspaceTabs';
@@ -66,6 +75,52 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function applyRunResponse(
+  response: AgentRunResponse,
+  mode: AgentFormValues['executionMode'],
+  setters: {
+    setRequirementSummary: (v: RequirementSummary | null) => void;
+    setTestCases: (v: TestCase[]) => void;
+    setBddContent: (v: string) => void;
+    setGeneratedFiles: (v: GeneratedFile[]) => void;
+    setSelectedFile: (v: GeneratedFile | null) => void;
+    setExecutionResult: (v: ExecutionResult | null) => void;
+    setTimelineSteps: (v: TimelineStep[]) => void;
+    setActiveTab: (v: WorkspaceTab) => void;
+  }
+) {
+  setters.setRequirementSummary(response.requirementSummary);
+  setters.setTimelineSteps(response.timelineSteps);
+
+  if (response.testCases?.length) {
+    setters.setTestCases(response.testCases);
+  }
+
+  if (response.generatedBdd) {
+    setters.setBddContent(response.generatedBdd.content);
+  }
+
+  if (response.generatedFiles?.length) {
+    setters.setGeneratedFiles(response.generatedFiles);
+    setters.setSelectedFile(response.generatedFiles[0]);
+  }
+
+  if (response.executionReport) {
+    setters.setExecutionResult(response.executionReport);
+    setters.setActiveTab('execution-report');
+  } else if (response.generatedFiles?.length) {
+    setters.setActiveTab('generated-files');
+  } else if (response.generatedBdd) {
+    setters.setActiveTab('generated-bdd');
+  } else if (response.testCases?.length) {
+    setters.setActiveTab('test-case-matrix');
+  }
+
+  if (mode === 'generate-execute-pr') {
+    // PR step status already reflected in timelineSteps from backend
+  }
+}
+
 export default function App() {
   const [environment, setEnvironment] = useState<Environment>('QA');
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
@@ -85,7 +140,12 @@ export default function App() {
   );
   const [isRunning, setIsRunning] = useState(false);
   const [statusMessage, setStatusMessage] = useState('Ready');
+  const [backendConnected, setBackendConnected] = useState<boolean | null>(null);
   const abortRef = useRef(false);
+
+  useEffect(() => {
+    isBackendAvailable().then(setBackendConnected);
+  }, []);
 
   const resetTimeline = useCallback((mode = formValues.executionMode) => {
     setTimelineSteps(
@@ -93,10 +153,40 @@ export default function App() {
     );
   }, [formValues.executionMode]);
 
-  const simulateAgentRun = useCallback(
+  const animateTimelineWhileWaiting = useCallback(
+    async (values: AgentFormValues) => {
+      const steps = getTimelineStepsForMode(values.executionMode).map((s) => ({ ...s }));
+
+      for (let i = 0; i < steps.length; i++) {
+        if (abortRef.current) break;
+
+        const step = steps[i];
+        if (!shouldRunStep(step.label, values.executionMode)) {
+          continue;
+        }
+
+        step.status = 'running';
+        setTimelineSteps([...steps]);
+        setStatusMessage(`${step.label}...`);
+
+        await delay(400);
+
+        if (abortRef.current) break;
+
+        step.status = 'completed';
+        setTimelineSteps([...steps]);
+
+        if (shouldStopAfter(step.label, values.executionMode)) {
+          break;
+        }
+      }
+    },
+    []
+  );
+
+  const simulateAgentRunLocal = useCallback(
     async (values: AgentFormValues) => {
       abortRef.current = false;
-      setIsRunning(true);
       const steps = getTimelineStepsForMode(values.executionMode).map((s) => ({ ...s }));
       setTimelineSteps(steps);
       setTestCases([]);
@@ -184,53 +274,133 @@ export default function App() {
         }
       }
 
-      setIsRunning(false);
       if (!abortRef.current) {
         const completionMessages: Record<AgentFormValues['executionMode'], string> = {
-          'generate-test-cases': 'Test cases generated successfully.',
-          'generate-automation': 'Automation files generated successfully.',
-          'generate-execute': 'Agent run completed successfully.',
+          'generate-test-cases': 'Test cases generated successfully (local fallback).',
+          'generate-automation': 'Automation files generated successfully (local fallback).',
+          'generate-execute': 'Agent run completed successfully (local fallback).',
           'generate-execute-pr':
-            'Agent run completed. PR draft placeholder ready (not implemented).',
+            'Agent run completed. PR draft placeholder ready (local fallback).',
         };
         setStatusMessage(completionMessages[values.executionMode]);
-      } else {
-        setStatusMessage('Agent run cancelled.');
       }
     },
     []
   );
 
-  const handleRunAgent = () => {
+  const handleRunAgent = async () => {
     const errors = validateForm(formValues);
     setFormErrors(errors);
     if (Object.keys(errors).length > 0) {
       setStatusMessage('Please fix validation errors before running the agent.');
       return;
     }
+
+    abortRef.current = false;
+    setIsRunning(true);
     resetTimeline(formValues.executionMode);
-    simulateAgentRun(formValues);
+    setTestCases([]);
+    setBddContent('');
+    setGeneratedFiles([]);
+    setSelectedFile(null);
+    setRequirementSummary(null);
+    setExecutionResult(null);
+    setStatusMessage('Running agent...');
+
+    const request = formValuesToRequest(formValues);
+    const animationPromise = animateTimelineWhileWaiting(formValues);
+
+    try {
+      const response = await runAgent(request);
+      await animationPromise;
+
+      if (abortRef.current) {
+        setStatusMessage('Agent run cancelled.');
+        return;
+      }
+
+      applyRunResponse(response, formValues.executionMode, {
+        setRequirementSummary,
+        setTestCases,
+        setBddContent,
+        setGeneratedFiles,
+        setSelectedFile,
+        setExecutionResult,
+        setTimelineSteps,
+        setActiveTab,
+      });
+
+      const completionMessages: Record<AgentFormValues['executionMode'], string> = {
+        'generate-test-cases': `Test cases generated via backend (run ${response.runId}).`,
+        'generate-automation': `Automation generated via backend (run ${response.runId}).`,
+        'generate-execute': `Agent run completed via backend (run ${response.runId}).`,
+        'generate-execute-pr': `Agent run completed via backend. PR placeholder ready (run ${response.runId}).`,
+      };
+      setStatusMessage(completionMessages[formValues.executionMode]);
+      setBackendConnected(true);
+    } catch (error) {
+      await animationPromise;
+
+      if (abortRef.current) {
+        setStatusMessage('Agent run cancelled.');
+        return;
+      }
+
+      const message =
+        error instanceof AgentApiError
+          ? `Backend unavailable (${error.message}). Using local mock fallback.`
+          : 'Backend unavailable. Using local mock fallback.';
+      setStatusMessage(message);
+      setBackendConnected(false);
+      await simulateAgentRunLocal(formValues);
+    } finally {
+      setIsRunning(false);
+    }
   };
 
-  const handleGenerateMatrix = () => {
+  const handleGenerateMatrix = async () => {
     const errors = validateForm(formValues);
     setFormErrors(errors);
     if (Object.keys(errors).length > 0) {
       setStatusMessage('Please fix validation errors.');
       return;
     }
-    setTestCases(mockTestCases);
-    setRequirementSummary(
-      buildRequirementSummary(
-        formValues.jiraStoryKey,
-        formValues.baseApiUrl,
-        formValues.endpointPath,
-        formValues.httpMethod,
-        formValues.headers
-      )
-    );
-    setActiveTab('test-case-matrix');
-    setStatusMessage('Test matrix generated from inputs.');
+
+    setIsRunning(true);
+    setStatusMessage('Generating test matrix...');
+
+    try {
+      const cases = await generateTestMatrix(formValuesToRequest(formValues));
+      setTestCases(cases);
+      setRequirementSummary(
+        buildRequirementSummary(
+          formValues.jiraStoryKey,
+          formValues.baseApiUrl,
+          formValues.endpointPath,
+          formValues.httpMethod,
+          formValues.headers
+        )
+      );
+      setActiveTab('test-case-matrix');
+      setStatusMessage('Test matrix generated via backend.');
+      setBackendConnected(true);
+    } catch {
+      setTestCases(mockTestCases);
+      setRequirementSummary(
+        buildRequirementSummary(
+          formValues.jiraStoryKey,
+          formValues.baseApiUrl,
+          formValues.endpointPath,
+          formValues.httpMethod,
+          formValues.headers
+        )
+      );
+      setActiveTab('test-case-matrix');
+      setStatusMessage('Backend unavailable. Test matrix generated from local mock.');
+      setBackendConnected(false);
+    } finally {
+      setIsRunning(false);
+    }
   };
 
   const handleClear = () => {
@@ -249,20 +419,40 @@ export default function App() {
     setStatusMessage('Form cleared. Ready.');
   };
 
-  const handleRegenerateBdd = () => {
-    setBddContent(
-      buildBddFeature(
-        formValues.jiraStoryKey,
-        formValues.httpMethod,
-        formValues.endpointPath
-      )
-    );
-    setStatusMessage('BDD feature file regenerated from current inputs.');
+  const handleRegenerateBdd = async () => {
+    setIsRunning(true);
+    setStatusMessage('Regenerating BDD...');
+
+    try {
+      const bdd = await generateBdd(formValuesToRequest(formValues));
+      setBddContent(bdd.content);
+      setStatusMessage('BDD feature file regenerated via backend.');
+      setBackendConnected(true);
+    } catch {
+      setBddContent(
+        buildBddFeature(
+          formValues.jiraStoryKey,
+          formValues.httpMethod,
+          formValues.endpointPath
+        )
+      );
+      setStatusMessage('Backend unavailable. BDD regenerated from local mock.');
+      setBackendConnected(false);
+    } finally {
+      setIsRunning(false);
+    }
   };
 
   const handlePlaceholder = (action: string) => {
     setStatusMessage(`${action} — placeholder action (not implemented).`);
   };
+
+  const footerMessage =
+    backendConnected === null
+      ? statusMessage
+      : backendConnected
+        ? `${statusMessage} | Backend: connected`
+        : `${statusMessage} | Backend: offline (using fallback)`;
 
   return (
     <div className={`app ${theme === 'dark' ? 'app--dark' : ''}`}>
@@ -310,7 +500,7 @@ export default function App() {
         </div>
       </main>
 
-      <FooterStatusBar message={statusMessage} isRunning={isRunning} />
+      <FooterStatusBar message={footerMessage} isRunning={isRunning} />
     </div>
   );
 }
