@@ -12,12 +12,15 @@ import type {
 } from './types';
 import {
   defaultFormValues,
-  initialTimelineSteps,
+  getTimelineStepsForMode,
+  shouldRunStep,
+  shouldStopAfter,
   mockTestCases,
-  mockBddFeature,
-  mockGeneratedFiles,
-  mockExecutionResult,
+  buildBddFeature,
+  buildGeneratedFiles,
   buildRequirementSummary,
+  buildExecutionResult,
+  bddDownloadFilename,
 } from './data/mockData';
 import Header from './components/Header';
 import AgentInputPanel from './components/AgentInputPanel';
@@ -77,23 +80,25 @@ export default function App() {
     useState<RequirementSummary | null>(null);
   const [executionResult, setExecutionResult] =
     useState<ExecutionResult | null>(null);
-  const [timelineSteps, setTimelineSteps] =
-    useState<TimelineStep[]>(initialTimelineSteps);
+  const [timelineSteps, setTimelineSteps] = useState<TimelineStep[]>(
+    getTimelineStepsForMode(defaultFormValues.executionMode)
+  );
   const [isRunning, setIsRunning] = useState(false);
   const [statusMessage, setStatusMessage] = useState('Ready');
   const abortRef = useRef(false);
 
-  const resetTimeline = useCallback(() => {
+  const resetTimeline = useCallback((mode = formValues.executionMode) => {
     setTimelineSteps(
-      initialTimelineSteps.map((s) => ({ ...s, status: 'pending' as const }))
+      getTimelineStepsForMode(mode).map((s) => ({ ...s, status: 'pending' as const }))
     );
-  }, []);
+  }, [formValues.executionMode]);
 
   const simulateAgentRun = useCallback(
     async (values: AgentFormValues) => {
       abortRef.current = false;
       setIsRunning(true);
-      resetTimeline();
+      const steps = getTimelineStepsForMode(values.executionMode).map((s) => ({ ...s }));
+      setTimelineSteps(steps);
       setTestCases([]);
       setBddContent('');
       setGeneratedFiles([]);
@@ -101,17 +106,24 @@ export default function App() {
       setRequirementSummary(null);
       setExecutionResult(null);
 
-      const steps = initialTimelineSteps.map((s) => ({ ...s }));
-      const shouldExecute =
-        values.executionMode === 'generate-execute' ||
-        values.executionMode === 'generate-execute-pr';
+      const bdd = buildBddFeature(
+        values.jiraStoryKey,
+        values.httpMethod,
+        values.endpointPath
+      );
+      const files = buildGeneratedFiles(
+        values.jiraStoryKey,
+        values.httpMethod,
+        values.endpointPath
+      );
 
       for (let i = 0; i < steps.length; i++) {
         if (abortRef.current) break;
 
         const step = steps[i];
-        if (!shouldExecute && (step.label === 'Execute Tests' || step.label === 'Analyze Results' || step.label === 'Produce Report')) {
+        if (!shouldRunStep(step.label, values.executionMode)) {
           step.status = 'pending';
+          setTimelineSteps([...steps]);
           continue;
         }
 
@@ -144,26 +156,49 @@ export default function App() {
         }
 
         if (step.label === 'Generate BDD') {
-          setBddContent(mockBddFeature);
+          setBddContent(bdd);
+          setActiveTab('generated-bdd');
         }
 
         if (step.label === 'Generate Automation Files') {
-          setGeneratedFiles(mockGeneratedFiles);
-          setSelectedFile(mockGeneratedFiles[0]);
+          setGeneratedFiles(files);
+          setSelectedFile(files[0]);
+          setActiveTab('generated-files');
         }
 
-        if (step.label === 'Produce Report' && shouldExecute) {
-          setExecutionResult(mockExecutionResult);
+        if (step.label === 'Produce Report') {
+          setExecutionResult(
+            buildExecutionResult(values.httpMethod, values.endpointPath)
+          );
           setActiveTab('execution-report');
+        }
+
+        if (step.label === 'Create Pull Request') {
+          setStatusMessage(
+            'Pull request draft ready — placeholder (PR creation not implemented).'
+          );
+        }
+
+        if (shouldStopAfter(step.label, values.executionMode)) {
+          break;
         }
       }
 
       setIsRunning(false);
-      setStatusMessage(
-        abortRef.current ? 'Agent run cancelled.' : 'Agent run completed successfully.'
-      );
+      if (!abortRef.current) {
+        const completionMessages: Record<AgentFormValues['executionMode'], string> = {
+          'generate-test-cases': 'Test cases generated successfully.',
+          'generate-automation': 'Automation files generated successfully.',
+          'generate-execute': 'Agent run completed successfully.',
+          'generate-execute-pr':
+            'Agent run completed. PR draft placeholder ready (not implemented).',
+        };
+        setStatusMessage(completionMessages[values.executionMode]);
+      } else {
+        setStatusMessage('Agent run cancelled.');
+      }
     },
-    [resetTimeline]
+    []
   );
 
   const handleRunAgent = () => {
@@ -173,6 +208,7 @@ export default function App() {
       setStatusMessage('Please fix validation errors before running the agent.');
       return;
     }
+    resetTimeline(formValues.executionMode);
     simulateAgentRun(formValues);
   };
 
@@ -207,15 +243,21 @@ export default function App() {
     setSelectedFile(null);
     setRequirementSummary(null);
     setExecutionResult(null);
-    resetTimeline();
+    resetTimeline(defaultFormValues.executionMode);
     setActiveTab('requirement-summary');
     setIsRunning(false);
     setStatusMessage('Form cleared. Ready.');
   };
 
   const handleRegenerateBdd = () => {
-    setBddContent(mockBddFeature);
-    setStatusMessage('BDD feature file regenerated.');
+    setBddContent(
+      buildBddFeature(
+        formValues.jiraStoryKey,
+        formValues.httpMethod,
+        formValues.endpointPath
+      )
+    );
+    setStatusMessage('BDD feature file regenerated from current inputs.');
   };
 
   const handlePlaceholder = (action: string) => {
@@ -236,7 +278,12 @@ export default function App() {
           values={formValues}
           errors={formErrors}
           isRunning={isRunning}
-          onChange={setFormValues}
+          onChange={(values) => {
+            setFormValues(values);
+            if (values.executionMode !== formValues.executionMode && !isRunning) {
+              resetTimeline(values.executionMode);
+            }
+          }}
           onRunAgent={handleRunAgent}
           onGenerateMatrix={handleGenerateMatrix}
           onClear={handleClear}
@@ -249,6 +296,7 @@ export default function App() {
             requirementSummary={requirementSummary}
             testCases={testCases}
             bddContent={bddContent}
+            bddDownloadFilename={bddDownloadFilename(formValues.endpointPath)}
             generatedFiles={generatedFiles}
             selectedFile={selectedFile}
             onSelectFile={setSelectedFile}

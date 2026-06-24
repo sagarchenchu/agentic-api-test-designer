@@ -3,11 +3,13 @@ import CodeBlock from './CodeBlock';
 
 interface GeneratedBddPreviewProps {
   featureContent: string;
+  downloadFilename?: string;
   onRegenerate: () => void;
 }
 
 export default function GeneratedBddPreview({
   featureContent,
+  downloadFilename = 'feature.feature',
   onRegenerate,
 }: GeneratedBddPreviewProps) {
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'error'>('idle');
@@ -36,7 +38,7 @@ export default function GeneratedBddPreview({
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'create_payment.feature';
+    a.download = downloadFilename;
     a.click();
     URL.revokeObjectURL(url);
   };

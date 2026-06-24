@@ -25,6 +25,7 @@ interface WorkspaceTabsProps {
   requirementSummary: RequirementSummary | null;
   testCases: TestCase[];
   bddContent: string;
+  bddDownloadFilename?: string;
   generatedFiles: GeneratedFile[];
   selectedFile: GeneratedFile | null;
   onSelectFile: (file: GeneratedFile) => void;
@@ -41,6 +42,7 @@ export default function WorkspaceTabs({
   requirementSummary,
   testCases,
   bddContent,
+  bddDownloadFilename,
   generatedFiles,
   selectedFile,
   onSelectFile,
@@ -76,6 +78,7 @@ export default function WorkspaceTabs({
         {activeTab === 'generated-bdd' && (
           <GeneratedBddPreview
             featureContent={bddContent}
+            downloadFilename={bddDownloadFilename}
             onRegenerate={onRegenerateBdd}
           />
         )}
