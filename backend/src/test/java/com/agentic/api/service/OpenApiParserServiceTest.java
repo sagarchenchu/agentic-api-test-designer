@@ -154,6 +154,41 @@ class OpenApiParserServiceTest {
         assertTrue(parserService.pathsMatch("/api/payments", "/api/payments", false));
     }
 
+    @Test
+    void parsesYamlOpenApiSpecification() {
+        AgentRequest request = new AgentRequest();
+        request.setSwaggerJson("""
+                openapi: 3.0.3
+                info:
+                  title: YAML Payments API
+                  version: 1.0.0
+                paths:
+                  /api/payments:
+                    post:
+                      operationId: createPayment
+                      requestBody:
+                        required: true
+                        content:
+                          application/json:
+                            schema:
+                              type: object
+                              required: [accountId]
+                              properties:
+                                accountId:
+                                  type: string
+                      responses:
+                        '201':
+                          description: Created
+                """);
+        request.setEndpointPath("/api/payments");
+        request.setHttpMethod("POST");
+
+        ApiContractDto contract = parserService.extractContract(request);
+
+        assertEquals("createPayment", contract.getOperationId());
+        assertEquals(1, contract.getRequestBody().getRequiredFields().size());
+    }
+
     private AgentRequest paymentRequest(String endpoint, String method) {
         AgentRequest request = new AgentRequest();
         request.setSwaggerJson(sampleSpec);

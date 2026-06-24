@@ -45,3 +45,9 @@ jobs:
 
       - name: Test backend
         run: mvn -f backend/pom.xml test
+
+      - name: Test reference API
+        run: mvn -f samples/reference-api/pom.xml test
+
+      - name: Test reference automation project
+        run: mvn -f samples/reference-automation-project/pom.xml test

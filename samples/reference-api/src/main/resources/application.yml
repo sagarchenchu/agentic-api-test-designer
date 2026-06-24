@@ -1,0 +1,23 @@
+server:
+  port: 9090
+
+spring:
+  application:
+    name: reference-api
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+reference-api:
+  valid-token: valid-token
+  forbidden-client-ids:
+    - blocked-portal
+    - forbidden-client
+  supported-currencies:
+    - USD
+    - EUR
+    - GBP
+  trigger-500-client-id: trigger-500
