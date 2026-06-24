@@ -90,10 +90,14 @@ function applyRunResponse(
     setExecutionResult: (v: ExecutionResult | null) => void;
     setTimelineSteps: (v: TimelineStep[]) => void;
     setActiveTab: (v: WorkspaceTab) => void;
+    setMatrixWarnings: (v: string[]) => void;
+    setMatrixAssumptions: (v: string[]) => void;
   }
 ) {
   setters.setRequirementSummary(response.requirementSummary);
   setters.setTimelineSteps(response.timelineSteps);
+  setters.setMatrixWarnings(response.testMatrixWarnings ?? []);
+  setters.setMatrixAssumptions(response.testMatrixAssumptions ?? []);
 
   if (response.testCases?.length) {
     setters.setTestCases(response.testCases);
@@ -337,6 +341,8 @@ export default function App() {
         setExecutionResult,
         setTimelineSteps,
         setActiveTab,
+        setMatrixWarnings,
+        setMatrixAssumptions,
       });
 
       const completionMessages: Record<AgentFormValues['executionMode'], string> = {

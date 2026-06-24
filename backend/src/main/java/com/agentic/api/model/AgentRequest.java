@@ -47,6 +47,8 @@ public class AgentRequest {
 
     private String frameworkType;
 
+    private String testGenerationMode;
+
     @AssertTrue(message = "Either swaggerUrl or swaggerJson is required")
     public boolean isSwaggerProvided() {
         boolean hasUrl = swaggerUrl != null && !swaggerUrl.isBlank();
@@ -148,5 +150,13 @@ public class AgentRequest {
 
     public void setFrameworkType(String frameworkType) {
         this.frameworkType = frameworkType;
+    }
+
+    public String getTestGenerationMode() {
+        return testGenerationMode;
+    }
+
+    public void setTestGenerationMode(String testGenerationMode) {
+        this.testGenerationMode = testGenerationMode;
     }
 }

@@ -43,6 +43,13 @@ public class MockAgentService implements AgentService {
         );
     }
 
+    private TestMatrixResponse resolveTestMatrix(AgentRequest request) {
+        if ("ai-assisted".equalsIgnoreCase(request.getTestGenerationMode())) {
+            return generateAiTestMatrix(request);
+        }
+        return generateTestMatrix(request);
+    }
+
     @Override
     public ApiContractDto extractContract(AgentRequest request) {
         return openApiParserService.extractContract(request);
@@ -83,7 +90,10 @@ public class MockAgentService implements AgentService {
         response.setTimelineSteps(buildTimelineSteps(mode));
 
         if (shouldIncludeTestMatrix(mode)) {
-            response.setTestCases(generateTestMatrix(request).getTestCases());
+            TestMatrixResponse matrix = resolveTestMatrix(request);
+            response.setTestCases(matrix.getTestCases());
+            response.setTestMatrixWarnings(matrix.getWarnings());
+            response.setTestMatrixAssumptions(matrix.getAssumptions());
         }
 
         if (shouldIncludeBdd(mode)) {

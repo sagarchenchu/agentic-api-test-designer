@@ -108,6 +108,22 @@ curl -X POST http://localhost:8080/api/agent/extract-contract \
   }'
 ```
 
+### Generate AI test matrix
+
+```bash
+curl -X POST http://localhost:8080/api/agent/generate-ai-test-matrix \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jiraStoryKey": "PAY-1234",
+    "jiraStoryText": "Amount should not exceed daily limit of 5000",
+    "swaggerJson": "{ ... }",
+    "baseApiUrl": "https://qa-api.company.com",
+    "endpointPath": "/api/payments",
+    "httpMethod": "POST",
+    "frameworkType": "restassured-cucumber-serenity"
+  }'
+```
+
 ### Run agent
 
 ```bash
@@ -132,7 +148,8 @@ curl -X POST http://localhost:8080/api/agent/run \
 |--------|------|-------------|
 | GET | `/api/agent/health` | Health check |
 | POST | `/api/agent/extract-contract` | Parse Swagger and extract API contract |
-| POST | `/api/agent/generate-test-matrix` | Dynamic test cases from contract (fallback to mock) |
+| POST | `/api/agent/generate-test-matrix` | Deterministic test cases from contract (fallback to mock) |
+| POST | `/api/agent/generate-ai-test-matrix` | AI-assisted test cases from Jira + contract |
 | POST | `/api/agent/generate-bdd` | Returns dynamic BDD feature |
 | POST | `/api/agent/generate-files` | Returns file tree + BDD metadata |
 | POST | `/api/agent/run` | Full agent run (mock) |
@@ -142,7 +159,11 @@ curl -X POST http://localhost:8080/api/agent/run \
 
 **Swagger parser first, AI second.**
 
-The parser produces a clean structured contract that future AI phases can consume:
+1. Phase 3 extracts a structured `ApiContractDto` from Swagger/OpenAPI
+2. Phase 4 sends Jira story + contract + framework to OpenAI for smarter test cases
+3. If AI is disabled or fails, deterministic Swagger rules are used automatically
+
+Future phases can pass this bundle to automation generation:
 
 ```json
 {
@@ -154,8 +175,8 @@ The parser produces a clean structured contract that future AI phases can consum
 
 ## Next phase
 
-- OpenAI-assisted test case enrichment from structured contract + Jira story
-- Real Jira and Swagger integrations
+- OpenAI-assisted BDD and automation file generation
+- Real Jira integration
 - Scaffold automation files in a target project
 - Execute tests and return real reports
 

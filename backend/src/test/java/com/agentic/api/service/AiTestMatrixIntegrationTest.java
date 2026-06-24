@@ -61,6 +61,25 @@ class AiTestMatrixIntegrationTest {
                 .andExpect(jsonPath("$.assumptions", hasSize(1)));
     }
 
+    @Test
+    void runAgentUsesAiMatrixWhenModeAiAssisted() throws Exception {
+        String aiResponse = new ClassPathResource("sample-ai-test-matrix.json")
+                .getContentAsString(StandardCharsets.UTF_8);
+        when(openAiClientService.isEnabled()).thenReturn(true);
+        when(openAiClientService.completeJson(anyString(), anyString())).thenReturn(aiResponse);
+
+        AgentRequest request = validRequest();
+        request.setTestGenerationMode("ai-assisted");
+
+        mockMvc.perform(post("/api/agent/run")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.testCases", hasSize(2)))
+                .andExpect(jsonPath("$.testCases[0].source", is("JIRA+SWAGGER")))
+                .andExpect(jsonPath("$.testMatrixAssumptions", hasSize(1)));
+    }
+
     private AgentRequest validRequest() throws Exception {
         String spec = new ClassPathResource("sample-openapi.json")
                 .getContentAsString(StandardCharsets.UTF_8);
