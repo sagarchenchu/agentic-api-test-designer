@@ -4,6 +4,7 @@ import ApiContractView from './ApiContractView';
 import TestCaseMatrix from './TestCaseMatrix';
 import GeneratedBddPreview from './GeneratedBddPreview';
 import GeneratedFilesTree from './GeneratedFilesTree';
+import FileWritePreview from './FileWritePreview';
 import ExecutionReport from './ExecutionReport';
 import type {
   ApiContract,
@@ -11,6 +12,7 @@ import type {
   TestCase,
   GeneratedFile,
   ExecutionResult,
+  FileWriteResponse,
 } from '../types';
 
 const TABS: { id: WorkspaceTab; label: string }[] = [
@@ -19,6 +21,7 @@ const TABS: { id: WorkspaceTab; label: string }[] = [
   { id: 'test-case-matrix', label: 'Test Case Matrix' },
   { id: 'generated-bdd', label: 'Generated BDD' },
   { id: 'generated-files', label: 'Generated Files' },
+  { id: 'file-write-preview', label: 'File Write Preview' },
   { id: 'execution-report', label: 'Execution Report' },
 ];
 
@@ -42,6 +45,11 @@ interface WorkspaceTabsProps {
   onRegenerateBdd: () => void;
   onGenerateAiBdd: () => void;
   onGenerateAiFiles: () => void;
+  onPreviewWrite: () => void;
+  onWriteFiles: () => void;
+  fileWritePreview: FileWriteResponse | null;
+  canWriteFiles: boolean;
+  isRunning: boolean;
   onCreateBugDraft: () => void;
   onRerunFailed: () => void;
   onExportReport: () => void;
@@ -67,6 +75,11 @@ export default function WorkspaceTabs({
   onRegenerateBdd,
   onGenerateAiBdd,
   onGenerateAiFiles,
+  onPreviewWrite,
+  onWriteFiles,
+  fileWritePreview,
+  canWriteFiles,
+  isRunning,
   onCreateBugDraft,
   onRerunFailed,
   onExportReport,
@@ -119,6 +132,18 @@ export default function WorkspaceTabs({
             warnings={automationWarnings}
             assumptions={automationAssumptions}
             onGenerateFiles={onGenerateAiFiles}
+            onPreviewWrite={onPreviewWrite}
+            onWriteFiles={onWriteFiles}
+            canWriteFiles={canWriteFiles}
+            isRunning={isRunning}
+          />
+        )}
+        {activeTab === 'file-write-preview' && (
+          <FileWritePreview
+            preview={fileWritePreview}
+            canWrite={canWriteFiles}
+            isRunning={isRunning}
+            onWriteFiles={onWriteFiles}
           />
         )}
         {activeTab === 'execution-report' && (

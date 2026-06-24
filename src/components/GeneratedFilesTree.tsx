@@ -8,6 +8,10 @@ interface GeneratedFilesTreeProps {
   warnings?: string[];
   assumptions?: string[];
   onGenerateFiles?: () => void;
+  onPreviewWrite?: () => void;
+  onWriteFiles?: () => void;
+  canWriteFiles?: boolean;
+  isRunning?: boolean;
 }
 
 export default function GeneratedFilesTree({
@@ -17,6 +21,10 @@ export default function GeneratedFilesTree({
   warnings = [],
   assumptions = [],
   onGenerateFiles,
+  onPreviewWrite,
+  onWriteFiles,
+  canWriteFiles = false,
+  isRunning = false,
 }: GeneratedFilesTreeProps) {
   if (files.length === 0) {
     return (
@@ -61,11 +69,33 @@ export default function GeneratedFilesTree({
           )}
         </div>
       )}
-      {onGenerateFiles && (
+      {(onGenerateFiles || onPreviewWrite || onWriteFiles) && (
         <div className="action-bar">
-          <button type="button" className="btn btn-secondary btn-sm" onClick={onGenerateFiles}>
-            Generate Automation Files
-          </button>
+          {onGenerateFiles && (
+            <button type="button" className="btn btn-secondary btn-sm" onClick={onGenerateFiles}>
+              Generate Automation Files
+            </button>
+          )}
+          {onPreviewWrite && (
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={onPreviewWrite}
+              disabled={isRunning}
+            >
+              Preview Write to Project
+            </button>
+          )}
+          {onWriteFiles && (
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={onWriteFiles}
+              disabled={!canWriteFiles || isRunning}
+            >
+              Write Files to Project
+            </button>
+          )}
         </div>
       )}
       <div className="file-tree">

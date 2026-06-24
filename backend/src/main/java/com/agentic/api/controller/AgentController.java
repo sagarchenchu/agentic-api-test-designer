@@ -67,6 +67,16 @@ public class AgentController {
         return agentService.generateAiAutomationPackage(request);
     }
 
+    @PostMapping("/preview-file-write")
+    public FileWriteResponse previewFileWrite(@Valid @RequestBody FileWriteRequest request) {
+        return agentService.previewFileWrite(request);
+    }
+
+    @PostMapping("/write-generated-files")
+    public FileWriteResponse writeGeneratedFiles(@Valid @RequestBody FileWriteRequest request) {
+        return agentService.writeGeneratedFiles(request);
+    }
+
     @PostMapping("/run")
     public AgentRunResponse runAgent(@Valid @RequestBody AgentRequest request) {
         return agentService.runAgent(request);

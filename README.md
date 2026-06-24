@@ -6,16 +6,16 @@ A web UI for generating API test cases and BDD automation from Jira stories and 
 
 Agentic API Test Designer helps QA engineers and automation developers turn Jira requirements and API contracts into structured test coverage, Cucumber feature files, and automation scaffolding — then execute tests and review results in one place.
 
-## Current phase: AI-assisted BDD and automation file generation (Phase 5)
+## Current phase: generated file write and diff preview (Phase 6)
 
 This repository includes:
 
 - **React frontend** — dashboard UI with form validation, tabs, and agent timeline
 - **Spring Boot backend** — REST API under `/api/agent` with Swagger/OpenAPI parsing and optional OpenAI integration
 
-Phase 5 adds **AI-assisted BDD and automation file generation** from Jira story + structured `ApiContractDto` + selected test matrix. OpenAI is **optional** — when disabled or unavailable, the system falls back to deterministic BDD and scaffold files.
+Phase 6 adds **safe generated-file write support** with preview, simple unified diff, and guarded writes to a local automation project path. Maven/test execution is **not implemented yet**.
 
-**Files are not written to the local project path yet** — generated BDD and automation files are returned in the API response and shown in the UI for preview/download. Local project writes are planned for Phase 6.
+Phase 5 added AI-assisted BDD and automation file generation. OpenAI is **optional** — when disabled or unavailable, the system falls back to deterministic BDD and scaffold files.
 
 There is **no real integration** yet with Jira or test execution.
 
@@ -52,6 +52,9 @@ By default `openai.enabled=false` and no API key is required.
 - **Generate Test Matrix** calls `/api/agent/generate-test-matrix` or `/api/agent/generate-ai-test-matrix` based on mode
 - **Generate Automation Package** — AI-assisted BDD + automation scaffold files in one call
 - **Generate BDD from Test Matrix** and **Generate Automation Files** buttons in workspace tabs
+- **File Write Preview** tab with per-file action/status/diff and write summary
+- **Preview Write to Project** and **Write Files to Project** buttons in Generated Files tab
+- Overwrite existing files and create backup checkboxes in the left panel
 - AI matrix and automation generation show source, warnings, and assumptions when available
 - Inline form validation (frontend and backend)
 - Agent timeline with execution-mode-aware step control
@@ -128,6 +131,46 @@ curl -X POST http://localhost:8080/api/agent/generate-ai-test-matrix \
   }'
 ```
 
+### Preview file write
+
+```bash
+curl -X POST http://localhost:8080/api/agent/preview-file-write \
+  -H "Content-Type: application/json" \
+  -d '{
+    "projectPath": "C:/repos/api-automation-framework",
+    "writeMode": "preview",
+    "overwriteExisting": false,
+    "createBackup": true,
+    "files": [
+      {
+        "path": "src/test/resources/features/payment/create_payment.feature",
+        "content": "Feature: Create payment API",
+        "language": "gherkin"
+      }
+    ]
+  }'
+```
+
+### Write generated files
+
+```bash
+curl -X POST http://localhost:8080/api/agent/write-generated-files \
+  -H "Content-Type: application/json" \
+  -d '{
+    "projectPath": "C:/repos/api-automation-framework",
+    "writeMode": "write",
+    "overwriteExisting": true,
+    "createBackup": true,
+    "files": [
+      {
+        "path": "src/test/resources/features/payment/create_payment.feature",
+        "content": "Feature: Create payment API",
+        "language": "gherkin"
+      }
+    ]
+  }'
+```
+
 ### Generate AI automation package
 
 ```bash
@@ -189,6 +232,8 @@ curl -X POST http://localhost:8080/api/agent/run \
 | POST | `/api/agent/generate-ai-bdd` | AI-assisted BDD feature from Jira + contract + test cases |
 | POST | `/api/agent/generate-ai-files` | AI-assisted automation scaffold files |
 | POST | `/api/agent/generate-ai-automation-package` | BDD + automation files together |
+| POST | `/api/agent/preview-file-write` | Preview create/update/skip/blocked actions with diff |
+| POST | `/api/agent/write-generated-files` | Safely write generated files to project path |
 | POST | `/api/agent/generate-bdd` | Returns dynamic BDD feature (legacy mock) |
 | POST | `/api/agent/generate-files` | Returns file tree + BDD metadata |
 | POST | `/api/agent/run` | Full agent run (mock) |
@@ -201,9 +246,27 @@ curl -X POST http://localhost:8080/api/agent/run \
 1. Phase 3 extracts a structured `ApiContractDto` from Swagger/OpenAPI
 2. Phase 4 sends Jira story + contract + framework to OpenAI for smarter test cases
 3. Phase 5 sends Jira story + contract + test cases to OpenAI for BDD and automation scaffold files
-4. If AI is disabled or fails, deterministic BDD and scaffold files are used automatically
+4. Phase 6 previews and writes generated files safely into allowed test folders under `projectPath`
+5. If AI is disabled or fails, deterministic BDD and scaffold files are used automatically
 
-Future phases can write generated files into a target project and execute tests:
+### File write safety guardrails
+
+- `projectPath` must exist and be a directory
+- Missing automation markers (`pom.xml`, `build.gradle`, `settings.gradle`, `src/test`) produce a warning
+- File paths must be relative and cannot contain `..`, absolute prefixes, or drive letters
+- Writes are blocked outside allowed folders:
+  - `src/test/resources/features/`
+  - `src/test/resources/templates/`
+  - `src/test/resources/testdata/`
+  - `src/test/resources/schemas/`
+  - `src/test/java/steps/`
+  - `src/test/java/api/`
+  - `src/test/java/validators/`
+- Sensitive paths are blocked (`.git/`, `.github/`, `.env`, `*.pem`, `*.key`, etc.)
+- `overwriteExisting=false` skips existing files; `createBackup=true` writes `<file>.bak.<timestamp>` before updates
+- No Maven execution, git commits, or writes outside `projectPath`
+
+Future phases can execute tests and return real reports:
 
 ```json
 {
@@ -216,9 +279,8 @@ Future phases can write generated files into a target project and execute tests:
 
 ## Next phase
 
-- Write generated automation files into local project path (Phase 6)
+- Maven/test execution and real execution reports
 - Real Jira integration
-- Execute tests and return real reports
 
 ## Tech stack
 
@@ -238,7 +300,7 @@ backend/                  # Spring Boot backend
   src/main/java/com/agentic/api/
     controller/           # REST controllers
     model/                # DTOs (incl. ApiContractDto)
-    service/              # OpenApiParserService, AutomationGenerationService, MockAgentService
+    service/              # OpenApiParserService, FileWriteService, AutomationGenerationService
 ```
 
 ## License

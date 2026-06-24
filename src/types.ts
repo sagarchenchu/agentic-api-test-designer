@@ -33,6 +33,7 @@ export type WorkspaceTab =
   | 'test-case-matrix'
   | 'generated-bdd'
   | 'generated-files'
+  | 'file-write-preview'
   | 'execution-report';
 
 export interface HeaderEntry {
@@ -52,6 +53,8 @@ export interface AgentFormValues {
   headers: HeaderEntry[];
   credentialRef: string;
   projectPath: string;
+  overwriteExisting: boolean;
+  createBackup: boolean;
   executionMode: ExecutionMode;
   frameworkType: FrameworkType;
   testGenerationMode: TestGenerationMode;
@@ -93,6 +96,37 @@ export interface GeneratedFile {
   path: string;
   content: string;
   language: string;
+}
+
+export type FileWriteAction = 'CREATE' | 'UPDATE' | 'SKIP' | 'BLOCKED';
+export type FileWriteStatus = 'READY' | 'WRITTEN' | 'SKIPPED' | 'BLOCKED' | 'ERROR';
+
+export interface FileWriteResult {
+  relativePath: string;
+  absolutePath: string | null;
+  action: FileWriteAction;
+  status: FileWriteStatus;
+  message: string;
+  diff?: string | null;
+  backupPath?: string | null;
+}
+
+export interface FileWriteSummary {
+  total: number;
+  create: number;
+  update: number;
+  skip: number;
+  blocked: number;
+  written: number;
+  errors: number;
+}
+
+export interface FileWriteResponse {
+  projectPath: string;
+  summary: FileWriteSummary;
+  results: FileWriteResult[];
+  warnings: string[];
+  errors: string[];
 }
 
 export interface FailedScenario {

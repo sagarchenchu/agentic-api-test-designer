@@ -205,6 +205,25 @@ export default function AgentInputPanel({
           />
         </div>
 
+        <div className="form-group checkbox-group">
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={values.overwriteExisting}
+              onChange={(e) => update('overwriteExisting', e.target.checked)}
+            />
+            Overwrite existing files
+          </label>
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={values.createBackup}
+              onChange={(e) => update('createBackup', e.target.checked)}
+            />
+            Create backup before overwrite
+          </label>
+        </div>
+
         <fieldset className="form-group">
           <legend>Execution Mode</legend>
           <div className="radio-group">

@@ -325,6 +325,60 @@ fieldset {
   accent-color: var(--color-primary);
 }
 
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.checkbox-label input {
+  accent-color: var(--color-primary);
+}
+
+.file-write-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.file-write-summary h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+.summary-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+}
+
+.file-write-project-path {
+  margin: 0.75rem 0 0;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.file-write-diff {
+  margin-top: 0.5rem;
+}
+
+.card-inline {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-elevated);
+}
+
 /* ===== Key-Value Editor ===== */
 .kv-editor {
   display: flex;
