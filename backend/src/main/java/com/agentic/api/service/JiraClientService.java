@@ -104,6 +104,15 @@ public class JiraClientService {
         if (body == null) {
             return "";
         }
-        return body.length() > 500 ? body.substring(0, 500) : body;
+        String redacted = body;
+        String apiToken = properties.getApiToken();
+        if (apiToken != null && !apiToken.isBlank()) {
+            redacted = redacted.replace(apiToken, "[REDACTED]");
+        }
+        String email = properties.getEmail();
+        if (email != null && !email.isBlank()) {
+            redacted = redacted.replace(email, "[REDACTED_EMAIL]");
+        }
+        return redacted.length() > 500 ? redacted.substring(0, 500) : redacted;
     }
 }
