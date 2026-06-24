@@ -1,0 +1,57 @@
+{
+  "key": "PAY-1234",
+  "fields": {
+    "summary": "Create payment API",
+    "description": {
+      "type": "doc",
+      "version": 1,
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            { "type": "text", "text": "As a payer I want to create payments." }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            { "type": "text", "text": "Acceptance Criteria" }
+          ]
+        },
+        {
+          "type": "bulletList",
+          "content": [
+            {
+              "type": "listItem",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    { "type": "text", "text": "Valid request creates payment" }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "listItem",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    { "type": "text", "text": "Missing accountId returns 400" }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "status": { "name": "In Progress" },
+    "issuetype": { "name": "Story" },
+    "priority": { "name": "High" },
+    "labels": ["api", "payment"],
+    "components": [{ "name": "Payments" }],
+    "customfield_10014": "PAY-1000"
+  }
+}

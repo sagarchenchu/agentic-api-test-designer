@@ -11,6 +11,8 @@ import type {
   TestCase,
   TestExecutionResponse,
   GitPrResponse,
+  JiraConfigStatus,
+  JiraStoryDetails,
   TimelineStep,
   WorkspaceTab,
 } from './types';
@@ -44,6 +46,12 @@ import {
   runTestExecution,
   previewGitPr,
   createGitPr,
+  getJiraConfigStatus,
+  fetchJiraStory,
+  postJiraSummary,
+  linkPrToJira,
+  buildJiraStoryText,
+  buildJiraPostSummaryRequest,
   generateTestMatrix,
   generateAiTestMatrix,
   runAgent,
@@ -189,10 +197,15 @@ export default function App() {
   const [testExecutionResult, setTestExecutionResult] = useState<TestExecutionResponse | null>(null);
   const [gitPrResult, setGitPrResult] = useState<GitPrResponse | null>(null);
   const [canCreateGitPr, setCanCreateGitPr] = useState(false);
+  const [jiraConfigStatus, setJiraConfigStatus] = useState<JiraConfigStatus | null>(null);
+  const [jiraStoryDetails, setJiraStoryDetails] = useState<JiraStoryDetails | null>(null);
   const abortRef = useRef(false);
 
   useEffect(() => {
     isBackendAvailable().then(setBackendConnected);
+    getJiraConfigStatus()
+      .then(setJiraConfigStatus)
+      .catch(() => setJiraConfigStatus(null));
   }, []);
 
   const resetTimeline = useCallback((mode = formValues.executionMode) => {
@@ -527,6 +540,7 @@ export default function App() {
     setTestExecutionResult(null);
     setGitPrResult(null);
     setCanCreateGitPr(false);
+    setJiraStoryDetails(null);
     setBddContent('');
     setGeneratedFiles([]);
     setSelectedFile(null);
@@ -944,6 +958,117 @@ export default function App() {
     }
   };
 
+  const handleFetchJiraStory = async () => {
+    if (!formValues.jiraStoryKey.trim()) {
+      setStatusMessage('Jira story key is required before fetching from Jira.');
+      return;
+    }
+
+    setIsRunning(true);
+    setStatusMessage('Fetching Jira story...');
+
+    try {
+      const story = await fetchJiraStory(formValues.jiraStoryKey.trim());
+      setJiraStoryDetails(story);
+      setFormValues((current) => ({
+        ...current,
+        jiraStoryKey: story.jiraStoryKey,
+        jiraStoryText: buildJiraStoryText(story),
+      }));
+      setRequirementSummary({
+        jiraKey: story.jiraStoryKey,
+        endpoint: formValues.endpointPath || '(not set)',
+        method: formValues.httpMethod,
+        requiredHeaders: formValues.headers.map((h) => h.key).filter(Boolean),
+        requestBodyFields: [],
+        expectedStatusCodes: [],
+        businessRules: story.acceptanceCriteria,
+        assumptions: story.warnings,
+      });
+      const warningText = story.warnings.length ? ` Warnings: ${story.warnings.join(' ')}` : '';
+      setStatusMessage(`Jira story ${story.jiraStoryKey} fetched.${warningText}`);
+      setBackendConnected(true);
+      getJiraConfigStatus().then(setJiraConfigStatus).catch(() => undefined);
+    } catch (error) {
+      const message =
+        error instanceof AgentApiError
+          ? `Jira fetch failed: ${error.message}`
+          : 'Jira fetch failed. Backend may be unavailable or Jira is disabled.';
+      setStatusMessage(message);
+      setBackendConnected(false);
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  const handlePostJiraSummary = async () => {
+    if (!formValues.jiraStoryKey.trim()) {
+      setStatusMessage('Jira story key is required before posting a summary.');
+      return;
+    }
+
+    setIsRunning(true);
+    setStatusMessage('Posting summary to Jira...');
+
+    try {
+      const response = await postJiraSummary(
+        buildJiraPostSummaryRequest(
+          formValues.jiraStoryKey.trim(),
+          testCases,
+          bddContent,
+          fileWritePreview,
+          testExecutionResult,
+          gitPrResult
+        )
+      );
+      const errorText = response.errors.length ? ` Errors: ${response.errors.join(' ')}` : '';
+      setStatusMessage(`${response.message ?? response.status}${errorText}`);
+      setBackendConnected(true);
+    } catch (error) {
+      const message =
+        error instanceof AgentApiError
+          ? `Jira summary post failed: ${error.message}`
+          : 'Jira summary post failed. Backend may be unavailable or Jira is disabled.';
+      setStatusMessage(message);
+      setBackendConnected(false);
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  const handleLinkPrToJira = async () => {
+    if (!formValues.jiraStoryKey.trim()) {
+      setStatusMessage('Jira story key is required before linking a PR.');
+      return;
+    }
+    if (!gitPrResult?.prUrl) {
+      setStatusMessage('Create a pull request first, then link it to Jira.');
+      return;
+    }
+
+    setIsRunning(true);
+    setStatusMessage('Linking pull request to Jira...');
+
+    try {
+      const response = await linkPrToJira({
+        jiraStoryKey: formValues.jiraStoryKey.trim(),
+        prUrl: gitPrResult.prUrl,
+      });
+      const errorText = response.errors.length ? ` Errors: ${response.errors.join(' ')}` : '';
+      setStatusMessage(`${response.message ?? response.status}${errorText}`);
+      setBackendConnected(true);
+    } catch (error) {
+      const message =
+        error instanceof AgentApiError
+          ? `Jira PR link failed: ${error.message}`
+          : 'Jira PR link failed. Backend may be unavailable or Jira is disabled.';
+      setStatusMessage(message);
+      setBackendConnected(false);
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
   const handlePlaceholder = (action: string) => {
     setStatusMessage(`${action} — placeholder action (not implemented).`);
   };
@@ -969,6 +1094,8 @@ export default function App() {
           values={formValues}
           errors={formErrors}
           isRunning={isRunning}
+          jiraConfigStatus={jiraConfigStatus}
+          jiraStoryDetails={jiraStoryDetails}
           onChange={(values) => {
             const nextValues = applyJiraGitDefaults(values);
             setFormValues(nextValues);
@@ -980,6 +1107,9 @@ export default function App() {
           onGenerateMatrix={handleGenerateMatrix}
           onExtractContract={handleExtractContract}
           onGenerateAutomationPackage={handleGenerateAutomationPackage}
+          onFetchJiraStory={handleFetchJiraStory}
+          onPostJiraSummary={handlePostJiraSummary}
+          onLinkPrToJira={handleLinkPrToJira}
           onClear={handleClear}
         />
 

@@ -5,6 +5,9 @@ import type {
   FileWriteResponse,
   GeneratedFile,
   GitPrResponse,
+  JiraConfigStatus,
+  JiraOperationResponse,
+  JiraStoryDetails,
   RequirementSummary,
   TestCase,
   TestExecutionResponse,
@@ -89,6 +92,23 @@ export interface GitPrRequest {
   remoteName?: string;
   filesToCommit: string[];
   dryRun?: boolean;
+}
+
+export interface JiraPostSummaryRequest {
+  jiraStoryKey: string;
+  testCaseCount: number;
+  bddGenerated: boolean;
+  filesWritten: number;
+  executionStatus?: string;
+  passed: number;
+  failed: number;
+  prUrl?: string;
+  serenityReportPath?: string;
+}
+
+export interface JiraLinkPrRequest {
+  jiraStoryKey: string;
+  prUrl: string;
 }
 
 export interface AgentRunResponse {
@@ -216,6 +236,53 @@ export function buildGitPrRequest(
     remoteName: values.remoteName.trim() || 'origin',
     filesToCommit,
     dryRun: false,
+  };
+}
+
+export function buildJiraStoryText(story: JiraStoryDetails): string {
+  const lines: string[] = [
+    `Summary: ${story.summary}`,
+    `Status: ${story.status}`,
+    `Type: ${story.issueType}`,
+    `Priority: ${story.priority}`,
+  ];
+  if (story.labels.length > 0) {
+    lines.push(`Labels: ${story.labels.join(', ')}`);
+  }
+  if (story.components.length > 0) {
+    lines.push(`Components: ${story.components.join(', ')}`);
+  }
+  if (story.epicKey) {
+    lines.push(`Epic: ${story.epicKey}`);
+  }
+  lines.push('', 'Description:', story.description || '(none)');
+  if (story.acceptanceCriteria.length > 0) {
+    lines.push('', 'Acceptance Criteria:');
+    for (const item of story.acceptanceCriteria) {
+      lines.push(`- ${item}`);
+    }
+  }
+  return lines.join('\n');
+}
+
+export function buildJiraPostSummaryRequest(
+  jiraStoryKey: string,
+  testCases: TestCase[],
+  bddContent: string,
+  fileWritePreview: FileWriteResponse | null,
+  testExecutionResult: TestExecutionResponse | null,
+  gitPrResult: GitPrResponse | null
+): JiraPostSummaryRequest {
+  return {
+    jiraStoryKey,
+    testCaseCount: testCases.length,
+    bddGenerated: bddContent.trim().length > 0,
+    filesWritten: fileWritePreview?.summary.written ?? 0,
+    executionStatus: testExecutionResult?.status,
+    passed: testExecutionResult?.summary.passed ?? 0,
+    failed: testExecutionResult?.summary.failed ?? 0,
+    prUrl: gitPrResult?.prUrl ?? undefined,
+    serenityReportPath: testExecutionResult?.reportPaths.serenity ?? undefined,
   };
 }
 
@@ -364,6 +431,35 @@ export async function createGitPr(
 
 export async function getGitPr(operationId: string): Promise<GitPrResponse> {
   return apiFetch<GitPrResponse>(`/api/agent/git-pr/${operationId}`);
+}
+
+export async function getJiraConfigStatus(): Promise<JiraConfigStatus> {
+  return apiFetch<JiraConfigStatus>('/api/agent/jira/config/status');
+}
+
+export async function fetchJiraStory(jiraStoryKey: string): Promise<JiraStoryDetails> {
+  return apiFetch<JiraStoryDetails>('/api/agent/jira/fetch-story', {
+    method: 'POST',
+    body: JSON.stringify({ jiraStoryKey }),
+  });
+}
+
+export async function postJiraSummary(
+  request: JiraPostSummaryRequest
+): Promise<JiraOperationResponse> {
+  return apiFetch<JiraOperationResponse>('/api/agent/jira/post-summary', {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+}
+
+export async function linkPrToJira(
+  request: JiraLinkPrRequest
+): Promise<JiraOperationResponse> {
+  return apiFetch<JiraOperationResponse>('/api/agent/jira/link-pr', {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
 }
 
 export async function generateBdd(
