@@ -31,6 +31,11 @@ public class AgentController {
         return agentService.generateTestMatrix(request);
     }
 
+    @PostMapping("/generate-ai-test-matrix")
+    public TestMatrixResponse generateAiTestMatrix(@Valid @RequestBody AgentRequest request) {
+        return agentService.generateAiTestMatrix(request);
+    }
+
     @PostMapping("/generate-bdd")
     public GeneratedBddDto generateBdd(@Valid @RequestBody AgentRequest request) {
         return agentService.generateBdd(request);

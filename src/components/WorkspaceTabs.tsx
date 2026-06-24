@@ -29,6 +29,8 @@ interface WorkspaceTabsProps {
   apiContract: ApiContract | null;
   apiContractError: string | null;
   testCases: TestCase[];
+  matrixWarnings?: string[];
+  matrixAssumptions?: string[];
   bddContent: string;
   bddDownloadFilename?: string;
   generatedFiles: GeneratedFile[];
@@ -48,6 +50,8 @@ export default function WorkspaceTabs({
   apiContract,
   apiContractError,
   testCases,
+  matrixWarnings,
+  matrixAssumptions,
   bddContent,
   bddDownloadFilename,
   generatedFiles,
@@ -83,7 +87,11 @@ export default function WorkspaceTabs({
           <ApiContractView contract={apiContract} error={apiContractError} />
         )}
         {activeTab === 'test-case-matrix' && (
-          <TestCaseMatrix testCases={testCases} />
+          <TestCaseMatrix
+            testCases={testCases}
+            warnings={matrixWarnings}
+            assumptions={matrixAssumptions}
+          />
         )}
         {activeTab === 'generated-bdd' && (
           <GeneratedBddPreview

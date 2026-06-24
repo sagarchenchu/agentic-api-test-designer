@@ -10,6 +10,7 @@ public class TestCaseDto {
     private String expectedValidation;
     private String priority;
     private String automationStatus;
+    private String source;
 
     public TestCaseDto() {
     }
@@ -17,6 +18,13 @@ public class TestCaseDto {
     public TestCaseDto(String id, String scenarioName, String type, String inputVariation,
                        String expectedStatus, String expectedValidation, String priority,
                        String automationStatus) {
+        this(id, scenarioName, type, inputVariation, expectedStatus, expectedValidation, priority,
+                automationStatus, null);
+    }
+
+    public TestCaseDto(String id, String scenarioName, String type, String inputVariation,
+                       String expectedStatus, String expectedValidation, String priority,
+                       String automationStatus, String source) {
         this.id = id;
         this.scenarioName = scenarioName;
         this.type = type;
@@ -25,6 +33,7 @@ public class TestCaseDto {
         this.expectedValidation = expectedValidation;
         this.priority = priority;
         this.automationStatus = automationStatus;
+        this.source = source;
     }
 
     public String getId() {
@@ -89,5 +98,13 @@ public class TestCaseDto {
 
     public void setAutomationStatus(String automationStatus) {
         this.automationStatus = automationStatus;
+    }
+
+    public String getSource() {
+        return source;
+    }
+
+    public void setSource(String source) {
+        this.source = source;
     }
 }

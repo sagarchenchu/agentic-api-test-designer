@@ -14,13 +14,21 @@ public class MockAgentService implements AgentService {
     private final Map<String, AgentRunResponse> runs = new ConcurrentHashMap<>();
     private final OpenApiParserService openApiParserService;
     private final ContractTestMatrixService contractTestMatrixService;
+    private final AiTestMatrixService aiTestMatrixService;
 
     public MockAgentService(
             OpenApiParserService openApiParserService,
-            ContractTestMatrixService contractTestMatrixService
+            ContractTestMatrixService contractTestMatrixService,
+            AiTestMatrixService aiTestMatrixService
     ) {
         this.openApiParserService = openApiParserService;
         this.contractTestMatrixService = contractTestMatrixService;
+        this.aiTestMatrixService = aiTestMatrixService;
+    }
+
+    @Override
+    public TestMatrixResponse generateAiTestMatrix(AgentRequest request) {
+        return aiTestMatrixService.generateAiTestMatrix(request);
     }
 
     @Override
@@ -33,6 +41,13 @@ public class MockAgentService implements AgentService {
                 mockTestCases(),
                 List.of("Swagger contract could not be parsed; using default mock test cases")
         );
+    }
+
+    private TestMatrixResponse resolveTestMatrix(AgentRequest request) {
+        if ("ai-assisted".equalsIgnoreCase(request.getTestGenerationMode())) {
+            return generateAiTestMatrix(request);
+        }
+        return generateTestMatrix(request);
     }
 
     @Override
@@ -75,7 +90,10 @@ public class MockAgentService implements AgentService {
         response.setTimelineSteps(buildTimelineSteps(mode));
 
         if (shouldIncludeTestMatrix(mode)) {
-            response.setTestCases(generateTestMatrix(request).getTestCases());
+            TestMatrixResponse matrix = resolveTestMatrix(request);
+            response.setTestCases(matrix.getTestCases());
+            response.setTestMatrixWarnings(matrix.getWarnings());
+            response.setTestMatrixAssumptions(matrix.getAssumptions());
         }
 
         if (shouldIncludeBdd(mode)) {

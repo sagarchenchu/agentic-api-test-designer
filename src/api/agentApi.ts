@@ -21,6 +21,7 @@ export interface AgentRequest {
   projectPath: string;
   executionMode: string;
   frameworkType: string;
+  testGenerationMode?: string;
 }
 
 export interface GeneratedBddResponse {
@@ -36,6 +37,7 @@ export interface GeneratedFilesResponse {
 export interface TestMatrixResponse {
   testCases: TestCase[];
   warnings: string[];
+  assumptions?: string[];
 }
 
 export interface AgentRunResponse {
@@ -47,6 +49,8 @@ export interface AgentRunResponse {
   generatedFiles: GeneratedFile[];
   executionReport: ExecutionResult | null;
   timelineSteps: TimelineStep[];
+  testMatrixWarnings?: string[];
+  testMatrixAssumptions?: string[];
 }
 
 const API_BASE_URL =
@@ -78,6 +82,7 @@ export function formValuesToRequest(values: AgentFormValues): AgentRequest {
     projectPath: values.projectPath,
     executionMode: values.executionMode,
     frameworkType: values.frameworkType,
+    testGenerationMode: values.testGenerationMode,
   };
 }
 
@@ -120,6 +125,15 @@ export async function generateTestMatrix(
   request: AgentRequest
 ): Promise<TestMatrixResponse> {
   return apiFetch<TestMatrixResponse>('/api/agent/generate-test-matrix', {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+}
+
+export async function generateAiTestMatrix(
+  request: AgentRequest
+): Promise<TestMatrixResponse> {
+  return apiFetch<TestMatrixResponse>('/api/agent/generate-ai-test-matrix', {
     method: 'POST',
     body: JSON.stringify(request),
   });

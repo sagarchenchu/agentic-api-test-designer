@@ -121,7 +121,7 @@ public class ContractTestMatrixService {
             ));
         }
 
-        return new TestMatrixResponse(cases, List.of());
+        return new TestMatrixResponse(cases, new ArrayList<>());
     }
 
     private String formatId(int id) {
