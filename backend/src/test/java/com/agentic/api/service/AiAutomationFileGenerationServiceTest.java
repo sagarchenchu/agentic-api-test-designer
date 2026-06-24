@@ -55,6 +55,8 @@ class AiAutomationFileGenerationServiceTest {
                 );
 
         assertEquals(7, result.files().size());
+        assertTrue(result.files().stream()
+                .anyMatch(file -> file.getContent().contains("verifyResponseValidation")));
         assertTrue(result.fallbackUsed());
         assertTrue(result.warnings().stream()
                 .anyMatch(w -> w.contains("OpenAI not configured")));

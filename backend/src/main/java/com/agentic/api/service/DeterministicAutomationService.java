@@ -107,7 +107,9 @@ public class DeterministicAutomationService {
             sb.append("    Then the response status code should be ")
                     .append(testCase.getExpectedStatus()).append("\n");
             if (testCase.getExpectedValidation() != null && !testCase.getExpectedValidation().isBlank()) {
-                sb.append("    And ").append(testCase.getExpectedValidation()).append("\n");
+                sb.append("    And the response validation should be \"")
+                        .append(escapeGherkinQuoted(testCase.getExpectedValidation()))
+                        .append("\"\n");
             }
             sb.append("\n");
         }
@@ -148,11 +150,11 @@ public class DeterministicAutomationService {
     private List<TestCaseDto> defaultTestCases(String method, String resource) {
         return List.of(
                 new TestCaseDto("TC_001", capitalize(method) + " " + resource + " with valid request",
-                        "Positive", "Valid body", "201", "the response should match the expected schema",
+                        "Positive", "Valid body", "201", "Response matches the expected schema",
                         "High", "Ready"),
                 new TestCaseDto("TC_002", "Missing required field",
                         "Negative", "Required field missing", "400",
-                        "the response should contain validation error", "High", "Ready")
+                        "Validation error is returned", "High", "Ready")
         );
     }
 
@@ -255,6 +257,11 @@ public class DeterministicAutomationService {
                     @Then("the response status code should be {int}")
                     public void verifyStatusCode(int status) {
                         // Assert status
+                    }
+
+                    @Then("the response validation should be {string}")
+                    public void verifyResponseValidation(String validation) {
+                        // Validate response content/business rule
                     }
                 }""".formatted(
                 resource, capOperation, method, operation, method, operation
@@ -364,6 +371,10 @@ public class DeterministicAutomationService {
     }
 
     private String escapeJson(String value) {
+        return value.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+    private String escapeGherkinQuoted(String value) {
         return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 }

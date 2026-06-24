@@ -54,6 +54,9 @@ class AiBddGenerationServiceTest {
         assertNotNull(result.bdd().getContent());
         assertTrue(result.bdd().getContent().contains("@PAY-1234"));
         assertTrue(result.bdd().getContent().contains("@TC_001"));
+        assertTrue(result.bdd().getContent().contains(
+                "And the response validation should be \"Payment is created\""
+        ));
         assertTrue(result.fallbackUsed());
         assertTrue(result.warnings().stream()
                 .anyMatch(w -> w.contains("OpenAI not configured")));
