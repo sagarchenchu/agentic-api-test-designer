@@ -95,6 +95,53 @@ class OpenApiParserServiceTest {
     }
 
     @Test
+    void getOperationDoesNotWarnWhenRequestBodyMissing() {
+        AgentRequest request = new AgentRequest();
+        request.setSwaggerJson(sampleSpec);
+        request.setJiraStoryKey("ORD-1");
+        request.setBaseApiUrl("https://qa-api.company.com");
+        request.setEndpointPath("/api/orders/123");
+        request.setHttpMethod("GET");
+
+        ApiContractDto contract = parserService.extractContract(request);
+
+        assertNull(contract.getRequestBody());
+        assertTrue(contract.getWarnings().isEmpty());
+    }
+
+    @Test
+    void postOperationWarnsWhenRequestBodyMissing() {
+        String specWithoutBody = """
+                {
+                  "openapi": "3.0.3",
+                  "paths": {
+                    "/api/payments": {
+                      "post": {
+                        "operationId": "createPayment",
+                        "summary": "Create payment",
+                        "responses": {
+                          "201": { "description": "Created" }
+                        }
+                      }
+                    }
+                  }
+                }
+                """;
+        AgentRequest request = new AgentRequest();
+        request.setSwaggerJson(specWithoutBody);
+        request.setJiraStoryKey("PAY-1234");
+        request.setBaseApiUrl("https://qa-api.company.com");
+        request.setEndpointPath("/api/payments");
+        request.setHttpMethod("POST");
+
+        ApiContractDto contract = parserService.extractContract(request);
+
+        assertNull(contract.getRequestBody());
+        assertEquals(1, contract.getWarnings().size());
+        assertTrue(contract.getWarnings().get(0).contains("No application/json request body"));
+    }
+
+    @Test
     void rejectsMissingEndpoint() {
         AgentRequest request = paymentRequest("/api/unknown", "POST");
         assertThrows(Exception.class, () -> parserService.extractContract(request));

@@ -61,7 +61,7 @@ public class OpenApiParserService {
         contract.setRequestBody(extractRequestBody(operation, spec));
         contract.setResponses(extractResponses(operation, spec));
 
-        if (contract.getRequestBody() == null && !hasRequestBodyMethod(method)) {
+        if (contract.getRequestBody() == null && hasRequestBodyMethod(method)) {
             contract.getWarnings().add("No application/json request body defined for this operation");
         }
 
