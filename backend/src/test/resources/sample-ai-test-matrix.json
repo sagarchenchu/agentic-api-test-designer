@@ -1,0 +1,30 @@
+{
+  "testCases": [
+    {
+      "id": "TC_001",
+      "scenarioName": "Create payment with valid request",
+      "type": "Positive",
+      "inputVariation": "Valid accountId, amount, and currency",
+      "expectedStatus": "201",
+      "expectedValidation": "Payment is created and response contains paymentId",
+      "priority": "High",
+      "automationStatus": "Ready",
+      "source": "JIRA+SWAGGER"
+    },
+    {
+      "id": "TC_002",
+      "scenarioName": "Amount exceeds daily limit",
+      "type": "Business",
+      "inputVariation": "amount = 6000",
+      "expectedStatus": "400",
+      "expectedValidation": "Daily limit validation error",
+      "priority": "High",
+      "automationStatus": "Ready",
+      "source": "JIRA"
+    }
+  ],
+  "warnings": [],
+  "assumptions": [
+    "Daily payment limit of 5000 is enforced by business rules from Jira"
+  ]
+}

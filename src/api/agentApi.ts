@@ -36,6 +36,7 @@ export interface GeneratedFilesResponse {
 export interface TestMatrixResponse {
   testCases: TestCase[];
   warnings: string[];
+  assumptions?: string[];
 }
 
 export interface AgentRunResponse {
@@ -120,6 +121,15 @@ export async function generateTestMatrix(
   request: AgentRequest
 ): Promise<TestMatrixResponse> {
   return apiFetch<TestMatrixResponse>('/api/agent/generate-test-matrix', {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+}
+
+export async function generateAiTestMatrix(
+  request: AgentRequest
+): Promise<TestMatrixResponse> {
+  return apiFetch<TestMatrixResponse>('/api/agent/generate-ai-test-matrix', {
     method: 'POST',
     body: JSON.stringify(request),
   });

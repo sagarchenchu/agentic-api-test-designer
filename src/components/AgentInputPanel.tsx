@@ -250,6 +250,24 @@ export default function AgentInputPanel({
         </fieldset>
 
         <div className="form-group">
+          <label htmlFor="testGenerationMode">Test Generation Mode</label>
+          <select
+            id="testGenerationMode"
+            className="form-select"
+            value={values.testGenerationMode}
+            onChange={(e) =>
+              update(
+                'testGenerationMode',
+                e.target.value as AgentFormValues['testGenerationMode']
+              )
+            }
+          >
+            <option value="deterministic">Deterministic Swagger Rules</option>
+            <option value="ai-assisted">AI-assisted</option>
+          </select>
+        </div>
+
+        <div className="form-group">
           <label htmlFor="frameworkType">Framework Type</label>
           <select
             id="frameworkType"

@@ -26,6 +26,7 @@ export const defaultFormValues: AgentFormValues = {
   projectPath: '',
   executionMode: 'generate-execute',
   frameworkType: 'restassured-cucumber-serenity',
+  testGenerationMode: 'deterministic',
 };
 
 export const baseTimelineSteps: TimelineStep[] = [

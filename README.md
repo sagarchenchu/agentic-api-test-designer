@@ -6,16 +6,31 @@ A web UI for generating API test cases and BDD automation from Jira stories and 
 
 Agentic API Test Designer helps QA engineers and automation developers turn Jira requirements and API contracts into structured test coverage, Cucumber feature files, and automation scaffolding — then execute tests and review results in one place.
 
-## Current phase: Swagger parser and contract extraction (Phase 3)
+## Current phase: AI-assisted test matrix generation (Phase 4)
 
 This repository includes:
 
 - **React frontend** — dashboard UI with form validation, tabs, and agent timeline
-- **Spring Boot backend** — REST API under `/api/agent` with deterministic Swagger/OpenAPI parsing
+- **Spring Boot backend** — REST API under `/api/agent` with Swagger/OpenAPI parsing and optional OpenAI integration
 
-Phase 3 adds a **Swagger/OpenAPI parser** that extracts structured API contracts and generates dynamic test matrices from schema fields — without AI.
+Phase 4 adds **AI-assisted test matrix generation** using Jira story text + structured `ApiContractDto` (not raw Swagger). OpenAI is **optional** — when disabled or unavailable, the system falls back to deterministic Swagger rules from Phase 3.
 
-There is **no real integration** yet with OpenAI, Jira, or test execution.
+There is **no real integration** yet with Jira or test execution.
+
+### OpenAI setup (optional)
+
+```bash
+export OPENAI_API_KEY=your-key-here
+```
+
+In `backend/src/main/resources/application.properties` or environment:
+
+```properties
+openai.enabled=true
+openai.model=gpt-4.1-mini
+```
+
+By default `openai.enabled=false` and no API key is required.
 
 ### Swagger parser limitations
 
@@ -31,6 +46,9 @@ There is **no real integration** yet with OpenAI, Jira, or test execution.
 - **API Contract** tab — operation summary, headers, parameters, request body fields, responses, warnings
 - **Extract API Contract** — parses Swagger/OpenAPI JSON or URL for the selected endpoint
 - Dynamic test matrix generation from extracted contract fields
+- **Test Generation Mode** — Deterministic Swagger Rules or AI-assisted
+- **Generate Test Matrix** calls `/api/agent/generate-test-matrix` or `/api/agent/generate-ai-test-matrix` based on mode
+- AI matrix shows source, warnings, and assumptions when available
 - Inline form validation (frontend and backend)
 - Agent timeline with execution-mode-aware step control
 - Dynamic BDD preview based on Jira key, HTTP method, and endpoint

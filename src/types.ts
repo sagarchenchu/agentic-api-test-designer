@@ -15,6 +15,8 @@ export type FrameworkType =
   | 'postman-newman'
   | 'custom';
 
+export type TestGenerationMode = 'deterministic' | 'ai-assisted';
+
 export type TestType =
   | 'Positive'
   | 'Negative'
@@ -52,6 +54,7 @@ export interface AgentFormValues {
   projectPath: string;
   executionMode: ExecutionMode;
   frameworkType: FrameworkType;
+  testGenerationMode: TestGenerationMode;
 }
 
 export interface FormErrors {
@@ -83,6 +86,7 @@ export interface TestCase {
   expectedValidation: string;
   priority: 'High' | 'Medium' | 'Low';
   automationStatus: string;
+  source?: string;
 }
 
 export interface GeneratedFile {

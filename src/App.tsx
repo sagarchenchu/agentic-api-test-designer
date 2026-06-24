@@ -28,6 +28,7 @@ import {
   extractContract,
   generateBdd,
   generateTestMatrix,
+  generateAiTestMatrix,
   runAgent,
   isBackendAvailable,
   AgentApiError,
@@ -130,6 +131,8 @@ export default function App() {
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [activeTab, setActiveTab] = useState<WorkspaceTab>('requirement-summary');
   const [testCases, setTestCases] = useState<TestCase[]>([]);
+  const [matrixWarnings, setMatrixWarnings] = useState<string[]>([]);
+  const [matrixAssumptions, setMatrixAssumptions] = useState<string[]>([]);
   const [bddContent, setBddContent] = useState('');
   const [generatedFiles, setGeneratedFiles] = useState<GeneratedFile[]>([]);
   const [selectedFile, setSelectedFile] = useState<GeneratedFile | null>(null);
@@ -304,6 +307,8 @@ export default function App() {
     setIsRunning(true);
     resetTimeline(formValues.executionMode);
     setTestCases([]);
+    setMatrixWarnings([]);
+    setMatrixAssumptions([]);
     setBddContent('');
     setGeneratedFiles([]);
     setSelectedFile(null);
@@ -371,11 +376,21 @@ export default function App() {
     }
 
     setIsRunning(true);
-    setStatusMessage('Generating test matrix...');
+    setStatusMessage(
+      formValues.testGenerationMode === 'ai-assisted'
+        ? 'Generating AI-assisted test matrix...'
+        : 'Generating test matrix...'
+    );
 
     try {
-      const response = await generateTestMatrix(formValuesToRequest(formValues));
+      const request = formValuesToRequest(formValues);
+      const response =
+        formValues.testGenerationMode === 'ai-assisted'
+          ? await generateAiTestMatrix(request)
+          : await generateTestMatrix(request);
       setTestCases(response.testCases);
+      setMatrixWarnings(response.warnings ?? []);
+      setMatrixAssumptions(response.assumptions ?? []);
       setRequirementSummary(
         buildRequirementSummary(
           formValues.jiraStoryKey,
@@ -386,13 +401,22 @@ export default function App() {
         )
       );
       setActiveTab('test-case-matrix');
-      const warningText = response.warnings.length
+      const warningText = response.warnings?.length
         ? ` Warnings: ${response.warnings.join(' ')}`
         : '';
-      setStatusMessage(`Test matrix generated via backend.${warningText}`);
+      const assumptionText = response.assumptions?.length
+        ? ` Assumptions: ${response.assumptions.join(' ')}`
+        : '';
+      const modeLabel =
+        formValues.testGenerationMode === 'ai-assisted'
+          ? 'AI-assisted test matrix generated via backend.'
+          : 'Test matrix generated via backend.';
+      setStatusMessage(`${modeLabel}${warningText}${assumptionText}`);
       setBackendConnected(true);
     } catch {
       setTestCases(mockTestCases);
+      setMatrixWarnings(['Backend unavailable. Used local mock test cases.']);
+      setMatrixAssumptions([]);
       setRequirementSummary(
         buildRequirementSummary(
           formValues.jiraStoryKey,
@@ -451,6 +475,8 @@ export default function App() {
     setFormValues(defaultFormValues);
     setFormErrors({});
     setTestCases([]);
+    setMatrixWarnings([]);
+    setMatrixAssumptions([]);
     setBddContent('');
     setGeneratedFiles([]);
     setSelectedFile(null);
@@ -533,6 +559,8 @@ export default function App() {
             apiContract={apiContract}
             apiContractError={apiContractError}
             testCases={testCases}
+            matrixWarnings={matrixWarnings}
+            matrixAssumptions={matrixAssumptions}
             bddContent={bddContent}
             bddDownloadFilename={bddDownloadFilename(formValues.endpointPath)}
             generatedFiles={generatedFiles}
