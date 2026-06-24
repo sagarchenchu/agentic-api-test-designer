@@ -6,14 +6,16 @@ A web UI for generating API test cases and BDD automation from Jira stories and 
 
 Agentic API Test Designer helps QA engineers and automation developers turn Jira requirements and API contracts into structured test coverage, Cucumber feature files, and automation scaffolding — then execute tests and review results in one place.
 
-## Current phase: AI-assisted test matrix generation (Phase 4)
+## Current phase: AI-assisted BDD and automation file generation (Phase 5)
 
 This repository includes:
 
 - **React frontend** — dashboard UI with form validation, tabs, and agent timeline
 - **Spring Boot backend** — REST API under `/api/agent` with Swagger/OpenAPI parsing and optional OpenAI integration
 
-Phase 4 adds **AI-assisted test matrix generation** using Jira story text + structured `ApiContractDto` (not raw Swagger). OpenAI is **optional** — when disabled or unavailable, the system falls back to deterministic Swagger rules from Phase 3.
+Phase 5 adds **AI-assisted BDD and automation file generation** from Jira story + structured `ApiContractDto` + selected test matrix. OpenAI is **optional** — when disabled or unavailable, the system falls back to deterministic BDD and scaffold files.
+
+**Files are not written to the local project path yet** — generated BDD and automation files are returned in the API response and shown in the UI for preview/download. Local project writes are planned for Phase 6.
 
 There is **no real integration** yet with Jira or test execution.
 
@@ -48,7 +50,9 @@ By default `openai.enabled=false` and no API key is required.
 - Dynamic test matrix generation from extracted contract fields
 - **Test Generation Mode** — Deterministic Swagger Rules or AI-assisted
 - **Generate Test Matrix** calls `/api/agent/generate-test-matrix` or `/api/agent/generate-ai-test-matrix` based on mode
-- AI matrix shows source, warnings, and assumptions when available
+- **Generate Automation Package** — AI-assisted BDD + automation scaffold files in one call
+- **Generate BDD from Test Matrix** and **Generate Automation Files** buttons in workspace tabs
+- AI matrix and automation generation show source, warnings, and assumptions when available
 - Inline form validation (frontend and backend)
 - Agent timeline with execution-mode-aware step control
 - Dynamic BDD preview based on Jira key, HTTP method, and endpoint
@@ -124,6 +128,38 @@ curl -X POST http://localhost:8080/api/agent/generate-ai-test-matrix \
   }'
 ```
 
+### Generate AI automation package
+
+```bash
+curl -X POST http://localhost:8080/api/agent/generate-ai-automation-package \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agentRequest": {
+      "jiraStoryKey": "PAY-1234",
+      "jiraStoryText": "Create payment with valid account",
+      "swaggerJson": "{ ... }",
+      "baseApiUrl": "https://qa-api.company.com",
+      "endpointPath": "/api/payments",
+      "httpMethod": "POST",
+      "frameworkType": "restassured-cucumber-serenity",
+      "testGenerationMode": "ai-assisted"
+    },
+    "testCases": [
+      {
+        "id": "TC_001",
+        "scenarioName": "Create payment with valid request",
+        "type": "Positive",
+        "inputVariation": "Valid body",
+        "expectedStatus": "201",
+        "expectedValidation": "Payment is created",
+        "priority": "High",
+        "automationStatus": "Ready",
+        "source": "JIRA+SWAGGER"
+      }
+    ]
+  }'
+```
+
 ### Run agent
 
 ```bash
@@ -150,7 +186,10 @@ curl -X POST http://localhost:8080/api/agent/run \
 | POST | `/api/agent/extract-contract` | Parse Swagger and extract API contract |
 | POST | `/api/agent/generate-test-matrix` | Deterministic test cases from contract (fallback to mock) |
 | POST | `/api/agent/generate-ai-test-matrix` | AI-assisted test cases from Jira + contract |
-| POST | `/api/agent/generate-bdd` | Returns dynamic BDD feature |
+| POST | `/api/agent/generate-ai-bdd` | AI-assisted BDD feature from Jira + contract + test cases |
+| POST | `/api/agent/generate-ai-files` | AI-assisted automation scaffold files |
+| POST | `/api/agent/generate-ai-automation-package` | BDD + automation files together |
+| POST | `/api/agent/generate-bdd` | Returns dynamic BDD feature (legacy mock) |
 | POST | `/api/agent/generate-files` | Returns file tree + BDD metadata |
 | POST | `/api/agent/run` | Full agent run (mock) |
 | GET | `/api/agent/runs/{runId}` | Retrieve a stored run |
@@ -161,23 +200,24 @@ curl -X POST http://localhost:8080/api/agent/run \
 
 1. Phase 3 extracts a structured `ApiContractDto` from Swagger/OpenAPI
 2. Phase 4 sends Jira story + contract + framework to OpenAI for smarter test cases
-3. If AI is disabled or fails, deterministic Swagger rules are used automatically
+3. Phase 5 sends Jira story + contract + test cases to OpenAI for BDD and automation scaffold files
+4. If AI is disabled or fails, deterministic BDD and scaffold files are used automatically
 
-Future phases can pass this bundle to automation generation:
+Future phases can write generated files into a target project and execute tests:
 
 ```json
 {
   "jiraStory": "...",
   "apiContract": { "structured contract" },
+  "testCases": [ "selected cases" ],
   "framework": "RestAssured + Cucumber + Serenity"
 }
 ```
 
 ## Next phase
 
-- OpenAI-assisted BDD and automation file generation
+- Write generated automation files into local project path (Phase 6)
 - Real Jira integration
-- Scaffold automation files in a target project
 - Execute tests and return real reports
 
 ## Tech stack
@@ -198,7 +238,7 @@ backend/                  # Spring Boot backend
   src/main/java/com/agentic/api/
     controller/           # REST controllers
     model/                # DTOs (incl. ApiContractDto)
-    service/              # OpenApiParserService, MockAgentService
+    service/              # OpenApiParserService, AutomationGenerationService, MockAgentService
 ```
 
 ## License

@@ -4,20 +4,35 @@ import CodeBlock from './CodeBlock';
 interface GeneratedBddPreviewProps {
   featureContent: string;
   downloadFilename?: string;
+  warnings?: string[];
+  assumptions?: string[];
   onRegenerate: () => void;
+  onGenerateFromMatrix?: () => void;
 }
 
 export default function GeneratedBddPreview({
   featureContent,
   downloadFilename = 'feature.feature',
+  warnings = [],
+  assumptions = [],
   onRegenerate,
+  onGenerateFromMatrix,
 }: GeneratedBddPreviewProps) {
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'error'>('idle');
 
   if (!featureContent) {
     return (
       <div className="empty-state">
-        <p>Run the agent to generate BDD feature files.</p>
+        <p>Run the agent or generate BDD from the test matrix to see feature files.</p>
+        {onGenerateFromMatrix && (
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={onGenerateFromMatrix}
+          >
+            Generate BDD from Test Matrix
+          </button>
+        )}
       </div>
     );
   }
@@ -45,7 +60,32 @@ export default function GeneratedBddPreview({
 
   return (
     <div className="bdd-preview">
+      {warnings.length > 0 && (
+        <div className="contract-warnings matrix-meta">
+          <h4>Warnings</h4>
+          <ul>
+            {warnings.map((warning) => (
+              <li key={warning}>{warning}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {assumptions.length > 0 && (
+        <div className="matrix-assumptions matrix-meta">
+          <h4>Assumptions</h4>
+          <ul>
+            {assumptions.map((assumption) => (
+              <li key={assumption}>{assumption}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       <div className="action-bar">
+        {onGenerateFromMatrix && (
+          <button type="button" className="btn btn-secondary btn-sm" onClick={onGenerateFromMatrix}>
+            Generate BDD from Test Matrix
+          </button>
+        )}
         <button type="button" className="btn btn-secondary btn-sm" onClick={handleCopy}>
           {copyStatus === 'copied' ? 'Copied!' : copyStatus === 'error' ? 'Copy failed' : 'Copy Feature File'}
         </button>

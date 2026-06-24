@@ -10,6 +10,7 @@ interface AgentInputPanelProps {
   onRunAgent: () => void;
   onGenerateMatrix: () => void;
   onExtractContract: () => void;
+  onGenerateAutomationPackage: () => void;
   onClear: () => void;
 }
 
@@ -21,6 +22,7 @@ export default function AgentInputPanel({
   onRunAgent,
   onGenerateMatrix,
   onExtractContract,
+  onGenerateAutomationPackage,
   onClear,
 }: AgentInputPanelProps) {
   const [swaggerJsonOpen, setSwaggerJsonOpen] = useState(false);
@@ -310,6 +312,14 @@ export default function AgentInputPanel({
             disabled={isRunning}
           >
             Generate Test Matrix
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={onGenerateAutomationPackage}
+            disabled={isRunning}
+          >
+            Generate Automation Package
           </button>
           <button
             type="button"

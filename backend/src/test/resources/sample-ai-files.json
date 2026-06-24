@@ -1,0 +1,21 @@
+{
+  "files": [
+    {
+      "path": "src/test/resources/features/payment/create_payment.feature",
+      "content": "@PAY-1234 @api @payment\nFeature: Create payment API",
+      "language": "gherkin"
+    },
+    {
+      "path": "src/test/resources/templates/payment/create_payment_request.json",
+      "content": "{\n  \"accountId\": \"{{accountId}}\"\n}",
+      "language": "json"
+    },
+    {
+      "path": "src/test/java/steps/payment/CreatePaymentSteps.java",
+      "content": "package steps.payment;\n\npublic class CreatePaymentSteps {}",
+      "language": "java"
+    }
+  ],
+  "warnings": [],
+  "assumptions": []
+}

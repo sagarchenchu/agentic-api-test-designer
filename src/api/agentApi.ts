@@ -40,6 +40,21 @@ export interface TestMatrixResponse {
   assumptions?: string[];
 }
 
+export interface AutomationGenerationRequest {
+  agentRequest: AgentRequest;
+  apiContract?: ApiContract | null;
+  testCases?: TestCase[];
+}
+
+export interface AutomationGenerationResponse {
+  generatedBdd: GeneratedBddResponse;
+  generatedFiles: GeneratedFile[];
+  warnings: string[];
+  assumptions: string[];
+  source: string;
+  fallbackUsed: boolean;
+}
+
 export interface AgentRunResponse {
   runId: string;
   status: string;
@@ -83,6 +98,18 @@ export function formValuesToRequest(values: AgentFormValues): AgentRequest {
     executionMode: values.executionMode,
     frameworkType: values.frameworkType,
     testGenerationMode: values.testGenerationMode,
+  };
+}
+
+export function buildAutomationRequest(
+  values: AgentFormValues,
+  apiContract?: ApiContract | null,
+  testCases?: TestCase[]
+): AutomationGenerationRequest {
+  return {
+    agentRequest: formValuesToRequest(values),
+    apiContract: apiContract ?? undefined,
+    testCases: testCases?.length ? testCases : undefined,
   };
 }
 
@@ -137,6 +164,36 @@ export async function generateAiTestMatrix(
     method: 'POST',
     body: JSON.stringify(request),
   });
+}
+
+export async function generateAiBdd(
+  request: AutomationGenerationRequest
+): Promise<AutomationGenerationResponse> {
+  return apiFetch<AutomationGenerationResponse>('/api/agent/generate-ai-bdd', {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+}
+
+export async function generateAiFiles(
+  request: AutomationGenerationRequest
+): Promise<AutomationGenerationResponse> {
+  return apiFetch<AutomationGenerationResponse>('/api/agent/generate-ai-files', {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+}
+
+export async function generateAiAutomationPackage(
+  request: AutomationGenerationRequest
+): Promise<AutomationGenerationResponse> {
+  return apiFetch<AutomationGenerationResponse>(
+    '/api/agent/generate-ai-automation-package',
+    {
+      method: 'POST',
+      body: JSON.stringify(request),
+    }
+  );
 }
 
 export async function generateBdd(

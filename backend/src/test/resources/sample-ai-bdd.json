@@ -1,0 +1,8 @@
+{
+  "content": "@PAY-1234 @api @payment\nFeature: Create payment API\n\n  Background:\n    Given the API base URL is configured\n    And the \"Authorization\" header is available\n\n  @TC_001 @positive\n  Scenario: Create payment with valid request\n    Given I prepare a valid POST request for \"/api/payments\"\n    When I send the request\n    Then the response status code should be 201\n",
+  "downloadFilename": "payment.feature",
+  "warnings": [],
+  "assumptions": [
+    "Authorization header is resolved from credential reference"
+  ]
+}

@@ -31,6 +31,8 @@ interface WorkspaceTabsProps {
   testCases: TestCase[];
   matrixWarnings?: string[];
   matrixAssumptions?: string[];
+  automationWarnings?: string[];
+  automationAssumptions?: string[];
   bddContent: string;
   bddDownloadFilename?: string;
   generatedFiles: GeneratedFile[];
@@ -38,6 +40,8 @@ interface WorkspaceTabsProps {
   onSelectFile: (file: GeneratedFile) => void;
   executionResult: ExecutionResult | null;
   onRegenerateBdd: () => void;
+  onGenerateAiBdd: () => void;
+  onGenerateAiFiles: () => void;
   onCreateBugDraft: () => void;
   onRerunFailed: () => void;
   onExportReport: () => void;
@@ -52,6 +56,8 @@ export default function WorkspaceTabs({
   testCases,
   matrixWarnings,
   matrixAssumptions,
+  automationWarnings,
+  automationAssumptions,
   bddContent,
   bddDownloadFilename,
   generatedFiles,
@@ -59,6 +65,8 @@ export default function WorkspaceTabs({
   onSelectFile,
   executionResult,
   onRegenerateBdd,
+  onGenerateAiBdd,
+  onGenerateAiFiles,
   onCreateBugDraft,
   onRerunFailed,
   onExportReport,
@@ -97,7 +105,10 @@ export default function WorkspaceTabs({
           <GeneratedBddPreview
             featureContent={bddContent}
             downloadFilename={bddDownloadFilename}
+            warnings={automationWarnings}
+            assumptions={automationAssumptions}
             onRegenerate={onRegenerateBdd}
+            onGenerateFromMatrix={onGenerateAiBdd}
           />
         )}
         {activeTab === 'generated-files' && (
@@ -105,6 +116,9 @@ export default function WorkspaceTabs({
             files={generatedFiles}
             selectedFile={selectedFile}
             onSelectFile={onSelectFile}
+            warnings={automationWarnings}
+            assumptions={automationAssumptions}
+            onGenerateFiles={onGenerateAiFiles}
           />
         )}
         {activeTab === 'execution-report' && (

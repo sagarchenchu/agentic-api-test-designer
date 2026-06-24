@@ -46,6 +46,27 @@ public class AgentController {
         return agentService.generateFiles(request);
     }
 
+    @PostMapping("/generate-ai-bdd")
+    public AutomationGenerationResponse generateAiBdd(
+            @Valid @RequestBody AutomationGenerationRequest request
+    ) {
+        return agentService.generateAiBdd(request);
+    }
+
+    @PostMapping("/generate-ai-files")
+    public AutomationGenerationResponse generateAiFiles(
+            @Valid @RequestBody AutomationGenerationRequest request
+    ) {
+        return agentService.generateAiFiles(request);
+    }
+
+    @PostMapping("/generate-ai-automation-package")
+    public AutomationGenerationResponse generateAiAutomationPackage(
+            @Valid @RequestBody AutomationGenerationRequest request
+    ) {
+        return agentService.generateAiAutomationPackage(request);
+    }
+
     @PostMapping("/run")
     public AgentRunResponse runAgent(@Valid @RequestBody AgentRequest request) {
         return agentService.runAgent(request);

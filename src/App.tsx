@@ -25,15 +25,19 @@ import {
 } from './data/mockData';
 import {
   formValuesToRequest,
+  buildAutomationRequest,
   extractContract,
   generateBdd,
+  generateAiBdd,
+  generateAiFiles,
+  generateAiAutomationPackage,
   generateTestMatrix,
   generateAiTestMatrix,
   runAgent,
   isBackendAvailable,
   AgentApiError,
 } from './api/agentApi';
-import type { AgentRunResponse } from './api/agentApi';
+import type { AgentRunResponse, AutomationGenerationResponse } from './api/agentApi';
 import Header from './components/Header';
 import AgentInputPanel from './components/AgentInputPanel';
 import WorkspaceTabs from './components/WorkspaceTabs';
@@ -137,6 +141,8 @@ export default function App() {
   const [testCases, setTestCases] = useState<TestCase[]>([]);
   const [matrixWarnings, setMatrixWarnings] = useState<string[]>([]);
   const [matrixAssumptions, setMatrixAssumptions] = useState<string[]>([]);
+  const [automationWarnings, setAutomationWarnings] = useState<string[]>([]);
+  const [automationAssumptions, setAutomationAssumptions] = useState<string[]>([]);
   const [bddContent, setBddContent] = useState('');
   const [generatedFiles, setGeneratedFiles] = useState<GeneratedFile[]>([]);
   const [selectedFile, setSelectedFile] = useState<GeneratedFile | null>(null);
@@ -483,6 +489,8 @@ export default function App() {
     setTestCases([]);
     setMatrixWarnings([]);
     setMatrixAssumptions([]);
+    setAutomationWarnings([]);
+    setAutomationAssumptions([]);
     setBddContent('');
     setGeneratedFiles([]);
     setSelectedFile(null);
@@ -494,6 +502,159 @@ export default function App() {
     setActiveTab('requirement-summary');
     setIsRunning(false);
     setStatusMessage('Form cleared. Ready.');
+  };
+
+  const applyAutomationResponse = (
+    response: AutomationGenerationResponse,
+    options?: { activeTab?: WorkspaceTab }
+  ) => {
+    if (response.generatedBdd) {
+      setBddContent(response.generatedBdd.content);
+    }
+    if (response.generatedFiles?.length) {
+      setGeneratedFiles(response.generatedFiles);
+      setSelectedFile(response.generatedFiles[0]);
+    }
+    setAutomationWarnings(response.warnings ?? []);
+    setAutomationAssumptions(response.assumptions ?? []);
+
+    if (options?.activeTab) {
+      setActiveTab(options.activeTab);
+    } else if (response.generatedFiles?.length) {
+      setActiveTab('generated-files');
+    } else if (response.generatedBdd) {
+      setActiveTab('generated-bdd');
+    }
+
+    const warningText = response.warnings?.length
+      ? ` Warnings: ${response.warnings.join(' ')}`
+      : '';
+    const assumptionText = response.assumptions?.length
+      ? ` Assumptions: ${response.assumptions.join(' ')}`
+      : '';
+    const sourceLabel = response.fallbackUsed
+      ? 'Automation generated via deterministic fallback.'
+      : `Automation generated via AI (source: ${response.source}).`;
+    setStatusMessage(`${sourceLabel}${warningText}${assumptionText}`);
+  };
+
+  const handleGenerateAutomationPackage = async () => {
+    const errors = validateForm(formValues);
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      setStatusMessage('Please fix validation errors before generating automation.');
+      return;
+    }
+
+    setIsRunning(true);
+    setAutomationWarnings([]);
+    setAutomationAssumptions([]);
+    setStatusMessage('Generating automation package (BDD + files)...');
+
+    const request = buildAutomationRequest(formValues, apiContract, testCases);
+
+    try {
+      const response = await generateAiAutomationPackage(request);
+      applyAutomationResponse(response);
+      setBackendConnected(true);
+    } catch {
+      const bdd = buildBddFeature(
+        formValues.jiraStoryKey,
+        formValues.httpMethod,
+        formValues.endpointPath
+      );
+      const files = buildGeneratedFiles(
+        formValues.jiraStoryKey,
+        formValues.httpMethod,
+        formValues.endpointPath
+      );
+      setBddContent(bdd);
+      setGeneratedFiles(files);
+      setSelectedFile(files[0]);
+      setAutomationWarnings(['Backend unavailable. Used local mock automation scaffold.']);
+      setAutomationAssumptions([]);
+      setActiveTab('generated-files');
+      setStatusMessage(
+        'Backend unavailable. Automation package generated from local mock.'
+      );
+      setBackendConnected(false);
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  const handleGenerateAiBdd = async () => {
+    const errors = validateForm(formValues);
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      setStatusMessage('Please fix validation errors before generating BDD.');
+      return;
+    }
+
+    setIsRunning(true);
+    setAutomationWarnings([]);
+    setAutomationAssumptions([]);
+    setStatusMessage('Generating BDD from test matrix...');
+
+    const request = buildAutomationRequest(formValues, apiContract, testCases);
+
+    try {
+      const response = await generateAiBdd(request);
+      applyAutomationResponse(response, { activeTab: 'generated-bdd' });
+      setBackendConnected(true);
+    } catch {
+      setBddContent(
+        buildBddFeature(
+          formValues.jiraStoryKey,
+          formValues.httpMethod,
+          formValues.endpointPath
+        )
+      );
+      setAutomationWarnings(['Backend unavailable. Used local mock BDD.']);
+      setAutomationAssumptions([]);
+      setActiveTab('generated-bdd');
+      setStatusMessage('Backend unavailable. BDD generated from local mock.');
+      setBackendConnected(false);
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  const handleGenerateAiFiles = async () => {
+    const errors = validateForm(formValues);
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      setStatusMessage('Please fix validation errors before generating files.');
+      return;
+    }
+
+    setIsRunning(true);
+    setAutomationWarnings([]);
+    setAutomationAssumptions([]);
+    setStatusMessage('Generating automation files...');
+
+    const request = buildAutomationRequest(formValues, apiContract, testCases);
+
+    try {
+      const response = await generateAiFiles(request);
+      applyAutomationResponse(response, { activeTab: 'generated-files' });
+      setBackendConnected(true);
+    } catch {
+      const files = buildGeneratedFiles(
+        formValues.jiraStoryKey,
+        formValues.httpMethod,
+        formValues.endpointPath
+      );
+      setGeneratedFiles(files);
+      setSelectedFile(files[0]);
+      setAutomationWarnings(['Backend unavailable. Used local mock automation files.']);
+      setAutomationAssumptions([]);
+      setActiveTab('generated-files');
+      setStatusMessage('Backend unavailable. Automation files generated from local mock.');
+      setBackendConnected(false);
+    } finally {
+      setIsRunning(false);
+    }
   };
 
   const handleRegenerateBdd = async () => {
@@ -554,6 +715,7 @@ export default function App() {
           onRunAgent={handleRunAgent}
           onGenerateMatrix={handleGenerateMatrix}
           onExtractContract={handleExtractContract}
+          onGenerateAutomationPackage={handleGenerateAutomationPackage}
           onClear={handleClear}
         />
 
@@ -567,6 +729,8 @@ export default function App() {
             testCases={testCases}
             matrixWarnings={matrixWarnings}
             matrixAssumptions={matrixAssumptions}
+            automationWarnings={automationWarnings}
+            automationAssumptions={automationAssumptions}
             bddContent={bddContent}
             bddDownloadFilename={bddDownloadFilename(formValues.endpointPath)}
             generatedFiles={generatedFiles}
@@ -574,6 +738,8 @@ export default function App() {
             onSelectFile={setSelectedFile}
             executionResult={executionResult}
             onRegenerateBdd={handleRegenerateBdd}
+            onGenerateAiBdd={handleGenerateAiBdd}
+            onGenerateAiFiles={handleGenerateAiFiles}
             onCreateBugDraft={() => handlePlaceholder('Create Bug Draft')}
             onRerunFailed={() => handlePlaceholder('Re-run Failed Tests')}
             onExportReport={() => handlePlaceholder('Export Report')}
