@@ -16,6 +16,8 @@ import type {
   TimelineStep,
 } from '../types';
 
+export const RISK_CONFIRMATION = 'I_UNDERSTAND';
+
 export interface AgentRequest {
   jiraStoryKey: string;
   jiraStoryText: string;
@@ -70,6 +72,7 @@ export interface FileWriteRequest {
   writeMode?: 'preview' | 'write';
   overwriteExisting?: boolean;
   createBackup?: boolean;
+  confirmation?: string;
 }
 
 export interface TestExecutionRequest {
@@ -81,6 +84,7 @@ export interface TestExecutionRequest {
   timeoutSeconds?: number;
   environment?: string;
   dryRun?: boolean;
+  confirmation?: string;
 }
 
 export interface GitPrRequest {
@@ -94,6 +98,7 @@ export interface GitPrRequest {
   remoteName?: string;
   filesToCommit: string[];
   dryRun?: boolean;
+  confirmation?: string;
 }
 
 export interface JiraPostSummaryRequest {
@@ -106,11 +111,13 @@ export interface JiraPostSummaryRequest {
   failed: number;
   prUrl?: string;
   serenityReportPath?: string;
+  confirmation?: string;
 }
 
 export interface JiraLinkPrRequest {
   jiraStoryKey: string;
   prUrl: string;
+  confirmation?: string;
 }
 
 export interface AgentRunResponse {
@@ -190,6 +197,7 @@ export function buildFileWriteRequest(
     files,
     overwriteExisting: values.overwriteExisting,
     createBackup: values.createBackup,
+    confirmation: RISK_CONFIRMATION,
   };
 }
 
@@ -210,6 +218,7 @@ export function buildTestExecutionRequest(
     timeoutSeconds: values.timeoutSeconds,
     environment,
     dryRun: false,
+    confirmation: RISK_CONFIRMATION,
   };
 }
 
@@ -248,6 +257,7 @@ export function buildGitPrRequest(
     remoteName: values.remoteName.trim() || 'origin',
     filesToCommit,
     dryRun: false,
+    confirmation: RISK_CONFIRMATION,
   };
 }
 
@@ -295,6 +305,7 @@ export function buildJiraPostSummaryRequest(
     failed: testExecutionResult?.summary.failed ?? 0,
     prUrl: gitPrResult?.prUrl ?? undefined,
     serenityReportPath: testExecutionResult?.reportPaths.serenity ?? undefined,
+    confirmation: RISK_CONFIRMATION,
   };
 }
 

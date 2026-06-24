@@ -59,6 +59,7 @@ import {
   getRunArtifacts,
   buildJiraStoryText,
   buildJiraPostSummaryRequest,
+  RISK_CONFIRMATION,
   generateTestMatrix,
   generateAiTestMatrix,
   runAgent,
@@ -1069,6 +1070,7 @@ export default function App() {
       const response = await linkPrToJira({
         jiraStoryKey: formValues.jiraStoryKey.trim(),
         prUrl: gitPrResult.prUrl,
+        confirmation: RISK_CONFIRMATION,
       });
       const errorText = response.errors.length ? ` Errors: ${response.errors.join(' ')}` : '';
       setStatusMessage(`${response.message ?? response.status}${errorText}`);
