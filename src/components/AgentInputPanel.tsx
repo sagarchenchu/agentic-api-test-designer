@@ -9,6 +9,7 @@ interface AgentInputPanelProps {
   onChange: (values: AgentFormValues) => void;
   onRunAgent: () => void;
   onGenerateMatrix: () => void;
+  onExtractContract: () => void;
   onClear: () => void;
 }
 
@@ -19,6 +20,7 @@ export default function AgentInputPanel({
   onChange,
   onRunAgent,
   onGenerateMatrix,
+  onExtractContract,
   onClear,
 }: AgentInputPanelProps) {
   const [swaggerJsonOpen, setSwaggerJsonOpen] = useState(false);
@@ -274,6 +276,14 @@ export default function AgentInputPanel({
             disabled={isRunning}
           >
             {isRunning ? 'Running...' : 'Run Agent'}
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={onExtractContract}
+            disabled={isRunning}
+          >
+            Extract API Contract
           </button>
           <button
             type="button"

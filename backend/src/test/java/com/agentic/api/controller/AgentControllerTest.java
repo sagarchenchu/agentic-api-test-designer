@@ -34,8 +34,9 @@ class AgentControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest())))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(5)))
-                .andExpect(jsonPath("$[0].id", is("TC_001")));
+                .andExpect(jsonPath("$.testCases", hasSize(5)))
+                .andExpect(jsonPath("$.testCases[0].id", is("TC_001")))
+                .andExpect(jsonPath("$.warnings", not(empty())));
     }
 
     @Test

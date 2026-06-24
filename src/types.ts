@@ -27,6 +27,7 @@ export type StepStatus = 'pending' | 'running' | 'completed' | 'failed';
 
 export type WorkspaceTab =
   | 'requirement-summary'
+  | 'api-contract'
   | 'test-case-matrix'
   | 'generated-bdd'
   | 'generated-files'
@@ -114,4 +115,57 @@ export interface TimelineStep {
   id: string;
   label: string;
   status: StepStatus;
+}
+
+export interface ApiParameter {
+  name: string;
+  in?: string;
+  required: boolean;
+  description?: string;
+  type?: string;
+  example?: string | number | boolean | null;
+  format?: string;
+}
+
+export interface ApiField {
+  name: string;
+  type?: string;
+  required: boolean;
+  description?: string;
+  example?: string | number | boolean | null;
+  enumValues?: string[];
+  minimum?: number;
+  maximum?: number;
+  format?: string;
+  nullable?: boolean;
+}
+
+export interface ApiRequestBody {
+  required: boolean;
+  contentType: string;
+  requiredFields: string[];
+  fields: ApiField[];
+}
+
+export interface ApiResponse {
+  statusCode: string;
+  description?: string;
+  contentType?: string;
+  fields?: string[];
+  requiredFields?: string[];
+}
+
+export interface ApiContract {
+  endpointPath: string;
+  httpMethod: string;
+  operationId?: string;
+  summary?: string;
+  description?: string;
+  tags: string[];
+  requiredHeaders: ApiParameter[];
+  pathParams: ApiParameter[];
+  queryParams: ApiParameter[];
+  requestBody?: ApiRequestBody | null;
+  responses: ApiResponse[];
+  warnings: string[];
 }

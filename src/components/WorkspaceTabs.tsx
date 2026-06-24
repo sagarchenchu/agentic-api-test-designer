@@ -1,10 +1,12 @@
 import type { WorkspaceTab } from '../types';
 import RequirementSummaryView from './RequirementSummary';
+import ApiContractView from './ApiContractView';
 import TestCaseMatrix from './TestCaseMatrix';
 import GeneratedBddPreview from './GeneratedBddPreview';
 import GeneratedFilesTree from './GeneratedFilesTree';
 import ExecutionReport from './ExecutionReport';
 import type {
+  ApiContract,
   RequirementSummary,
   TestCase,
   GeneratedFile,
@@ -13,6 +15,7 @@ import type {
 
 const TABS: { id: WorkspaceTab; label: string }[] = [
   { id: 'requirement-summary', label: 'Requirement Summary' },
+  { id: 'api-contract', label: 'API Contract' },
   { id: 'test-case-matrix', label: 'Test Case Matrix' },
   { id: 'generated-bdd', label: 'Generated BDD' },
   { id: 'generated-files', label: 'Generated Files' },
@@ -23,6 +26,8 @@ interface WorkspaceTabsProps {
   activeTab: WorkspaceTab;
   onTabChange: (tab: WorkspaceTab) => void;
   requirementSummary: RequirementSummary | null;
+  apiContract: ApiContract | null;
+  apiContractError: string | null;
   testCases: TestCase[];
   bddContent: string;
   bddDownloadFilename?: string;
@@ -40,6 +45,8 @@ export default function WorkspaceTabs({
   activeTab,
   onTabChange,
   requirementSummary,
+  apiContract,
+  apiContractError,
   testCases,
   bddContent,
   bddDownloadFilename,
@@ -71,6 +78,9 @@ export default function WorkspaceTabs({
       <div className="tab-content" role="tabpanel">
         {activeTab === 'requirement-summary' && (
           <RequirementSummaryView summary={requirementSummary} />
+        )}
+        {activeTab === 'api-contract' && (
+          <ApiContractView contract={apiContract} error={apiContractError} />
         )}
         {activeTab === 'test-case-matrix' && (
           <TestCaseMatrix testCases={testCases} />

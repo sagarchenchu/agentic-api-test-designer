@@ -21,8 +21,13 @@ public class AgentController {
         this.agentService = agentService;
     }
 
+    @PostMapping("/extract-contract")
+    public ApiContractDto extractContract(@Valid @RequestBody AgentRequest request) {
+        return agentService.extractContract(request);
+    }
+
     @PostMapping("/generate-test-matrix")
-    public List<TestCaseDto> generateTestMatrix(@Valid @RequestBody AgentRequest request) {
+    public TestMatrixResponse generateTestMatrix(@Valid @RequestBody AgentRequest request) {
         return agentService.generateTestMatrix(request);
     }
 

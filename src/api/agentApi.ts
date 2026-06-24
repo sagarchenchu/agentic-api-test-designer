@@ -1,5 +1,6 @@
 import type {
   AgentFormValues,
+  ApiContract,
   ExecutionResult,
   GeneratedFile,
   RequirementSummary,
@@ -30,6 +31,11 @@ export interface GeneratedBddResponse {
 export interface GeneratedFilesResponse {
   files: GeneratedFile[];
   generatedBdd: GeneratedBddResponse;
+}
+
+export interface TestMatrixResponse {
+  testCases: TestCase[];
+  warnings: string[];
 }
 
 export interface AgentRunResponse {
@@ -101,10 +107,19 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+export async function extractContract(
+  request: AgentRequest
+): Promise<ApiContract> {
+  return apiFetch<ApiContract>('/api/agent/extract-contract', {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+}
+
 export async function generateTestMatrix(
   request: AgentRequest
-): Promise<TestCase[]> {
-  return apiFetch<TestCase[]>('/api/agent/generate-test-matrix', {
+): Promise<TestMatrixResponse> {
+  return apiFetch<TestMatrixResponse>('/api/agent/generate-test-matrix', {
     method: 'POST',
     body: JSON.stringify(request),
   });

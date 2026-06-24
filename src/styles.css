@@ -957,7 +957,102 @@ fieldset {
   to { transform: rotate(360deg); }
 }
 
-/* ===== Responsive ===== */
+/* ===== API Contract View ===== */
+.api-contract-view {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.contract-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.contract-title {
+  font-size: 1.1rem;
+  margin-bottom: 0.25rem;
+}
+
+.contract-meta {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.contract-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.contract-description {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.contract-warnings {
+  padding: 0.75rem 1rem;
+  background: var(--color-warning-bg);
+  border: 1px solid var(--color-warning);
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+}
+
+.contract-warnings ul {
+  margin-top: 0.35rem;
+  padding-left: 1.25rem;
+}
+
+.contract-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.contract-section--wide {
+  grid-column: 1 / -1;
+}
+
+.contract-dl {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.contract-dl dt {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.contract-dl dd {
+  font-size: 0.85rem;
+}
+
+.contract-empty {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.contract-subtitle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.contract-required-fields {
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.empty-state--error {
+  color: var(--color-error);
+}
+
 @media (max-width: 1100px) {
   .app-main {
     grid-template-columns: 1fr;

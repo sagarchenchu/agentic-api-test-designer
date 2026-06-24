@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type {
   AgentFormValues,
+  ApiContract,
   Environment,
   ExecutionResult,
   FormErrors,
@@ -24,6 +25,7 @@ import {
 } from './data/mockData';
 import {
   formValuesToRequest,
+  extractContract,
   generateBdd,
   generateTestMatrix,
   runAgent,
@@ -133,6 +135,8 @@ export default function App() {
   const [selectedFile, setSelectedFile] = useState<GeneratedFile | null>(null);
   const [requirementSummary, setRequirementSummary] =
     useState<RequirementSummary | null>(null);
+  const [apiContract, setApiContract] = useState<ApiContract | null>(null);
+  const [apiContractError, setApiContractError] = useState<string | null>(null);
   const [executionResult, setExecutionResult] =
     useState<ExecutionResult | null>(null);
   const [timelineSteps, setTimelineSteps] = useState<TimelineStep[]>(
@@ -370,8 +374,8 @@ export default function App() {
     setStatusMessage('Generating test matrix...');
 
     try {
-      const cases = await generateTestMatrix(formValuesToRequest(formValues));
-      setTestCases(cases);
+      const response = await generateTestMatrix(formValuesToRequest(formValues));
+      setTestCases(response.testCases);
       setRequirementSummary(
         buildRequirementSummary(
           formValues.jiraStoryKey,
@@ -382,7 +386,10 @@ export default function App() {
         )
       );
       setActiveTab('test-case-matrix');
-      setStatusMessage('Test matrix generated via backend.');
+      const warningText = response.warnings.length
+        ? ` Warnings: ${response.warnings.join(' ')}`
+        : '';
+      setStatusMessage(`Test matrix generated via backend.${warningText}`);
       setBackendConnected(true);
     } catch {
       setTestCases(mockTestCases);
@@ -403,6 +410,42 @@ export default function App() {
     }
   };
 
+  const handleExtractContract = async () => {
+    const errors = validateForm(formValues);
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      setStatusMessage('Please fix validation errors before extracting contract.');
+      return;
+    }
+
+    setIsRunning(true);
+    setApiContractError(null);
+    setStatusMessage('Extracting API contract from Swagger/OpenAPI...');
+
+    try {
+      const contract = await extractContract(formValuesToRequest(formValues));
+      setApiContract(contract);
+      setActiveTab('api-contract');
+      const warningText = contract.warnings.length
+        ? ` Warnings: ${contract.warnings.join(' ')}`
+        : '';
+      setStatusMessage(`API contract extracted for ${contract.httpMethod} ${contract.endpointPath}.${warningText}`);
+      setBackendConnected(true);
+    } catch (error) {
+      setApiContract(null);
+      const message =
+        error instanceof AgentApiError
+          ? `Contract extraction failed: ${error.message}`
+          : 'Contract extraction failed. Backend may be unavailable.';
+      setApiContractError(message);
+      setActiveTab('api-contract');
+      setStatusMessage(message);
+      setBackendConnected(false);
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
   const handleClear = () => {
     abortRef.current = true;
     setFormValues(defaultFormValues);
@@ -412,6 +455,8 @@ export default function App() {
     setGeneratedFiles([]);
     setSelectedFile(null);
     setRequirementSummary(null);
+    setApiContract(null);
+    setApiContractError(null);
     setExecutionResult(null);
     resetTimeline(defaultFormValues.executionMode);
     setActiveTab('requirement-summary');
@@ -476,6 +521,7 @@ export default function App() {
           }}
           onRunAgent={handleRunAgent}
           onGenerateMatrix={handleGenerateMatrix}
+          onExtractContract={handleExtractContract}
           onClear={handleClear}
         />
 
@@ -484,6 +530,8 @@ export default function App() {
             activeTab={activeTab}
             onTabChange={setActiveTab}
             requirementSummary={requirementSummary}
+            apiContract={apiContract}
+            apiContractError={apiContractError}
             testCases={testCases}
             bddContent={bddContent}
             bddDownloadFilename={bddDownloadFilename(formValues.endpointPath)}

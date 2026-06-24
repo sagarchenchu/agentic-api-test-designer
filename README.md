@@ -6,23 +6,34 @@ A web UI for generating API test cases and BDD automation from Jira stories and 
 
 Agentic API Test Designer helps QA engineers and automation developers turn Jira requirements and API contracts into structured test coverage, Cucumber feature files, and automation scaffolding — then execute tests and review results in one place.
 
-## Current phase: backend mock API skeleton
+## Current phase: Swagger parser and contract extraction (Phase 3)
 
 This repository includes:
 
 - **React frontend** — dashboard UI with form validation, tabs, and agent timeline
-- **Spring Boot backend** — REST API under `/api/agent` returning mock/dynamic responses
+- **Spring Boot backend** — REST API under `/api/agent` with deterministic Swagger/OpenAPI parsing
 
-There is **no real integration** yet with OpenAI, Jira, Swagger parsing, or test execution. The UI calls the backend when available and falls back to local mock data when the backend is offline.
+Phase 3 adds a **Swagger/OpenAPI parser** that extracts structured API contracts and generates dynamic test matrices from schema fields — without AI.
+
+There is **no real integration** yet with OpenAI, Jira, or test execution.
+
+### Swagger parser limitations
+
+- OpenAPI **3.x only** for now
+- **Local `$ref`** resolution under `#/components/schemas/` only
+- Focus on **`application/json`** request/response bodies
+- Path matching supports exact paths and simple templates like `/api/orders/{orderId}`
+- `swaggerUrl` is fetched at request time (no caching yet)
 
 ## Features
 
 - Single-page dashboard with agent input form and tabbed workspace
+- **API Contract** tab — operation summary, headers, parameters, request body fields, responses, warnings
+- **Extract API Contract** — parses Swagger/OpenAPI JSON or URL for the selected endpoint
+- Dynamic test matrix generation from extracted contract fields
 - Inline form validation (frontend and backend)
-- Key-value headers editor
 - Agent timeline with execution-mode-aware step control
 - Dynamic BDD preview based on Jira key, HTTP method, and endpoint
-- Mock test matrix, generated files, and execution report
 - Copy-to-clipboard and download for BDD feature files
 - Light/dark theme toggle
 - Responsive layout for desktop and mobile
@@ -63,27 +74,37 @@ Backend listens on `http://localhost:8080`.
 
 Optional: set `VITE_API_BASE_URL` to point at a different backend URL.
 
-## Example API call
+## Example API calls
+
+### Extract contract
+
+```bash
+curl -X POST http://localhost:8080/api/agent/extract-contract \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jiraStoryKey": "PAY-1234",
+    "swaggerUrl": "https://qa-api.company.com/swagger.json",
+    "baseApiUrl": "https://qa-api.company.com",
+    "endpointPath": "/api/payments",
+    "httpMethod": "POST"
+  }'
+```
+
+### Run agent
 
 ```bash
 curl -X POST http://localhost:8080/api/agent/run \
   -H "Content-Type: application/json" \
   -d '{
     "jiraStoryKey": "PAY-1234",
-    "jiraStoryText": "As a user...",
     "swaggerUrl": "https://qa-api.company.com/swagger.json",
-    "swaggerJson": "",
     "baseApiUrl": "https://qa-api.company.com",
     "endpointPath": "/api/payments",
     "httpMethod": "POST",
     "headers": [
-      { "key": "Authorization", "value": "Bearer {{token}}" },
-      { "key": "Content-Type", "value": "application/json" }
+      { "key": "Authorization", "value": "Bearer {{token}}" }
     ],
-    "credentialRef": "qa_api_user",
-    "projectPath": "C:\\repos\\api-automation-framework",
-    "executionMode": "generate-execute",
-    "frameworkType": "restassured-cucumber-serenity"
+    "executionMode": "generate-execute"
   }'
 ```
 
@@ -92,39 +113,53 @@ curl -X POST http://localhost:8080/api/agent/run \
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/api/agent/health` | Health check |
-| POST | `/api/agent/generate-test-matrix` | Returns mock test cases |
+| POST | `/api/agent/extract-contract` | Parse Swagger and extract API contract |
+| POST | `/api/agent/generate-test-matrix` | Dynamic test cases from contract (fallback to mock) |
 | POST | `/api/agent/generate-bdd` | Returns dynamic BDD feature |
-| POST | `/api/agent/generate-files` | Returns generated file tree and BDD metadata |
+| POST | `/api/agent/generate-files` | Returns file tree + BDD metadata |
 | POST | `/api/agent/run` | Full agent run (mock) |
 | GET | `/api/agent/runs/{runId}` | Retrieve a stored run |
 
+## Design approach
+
+**Swagger parser first, AI second.**
+
+The parser produces a clean structured contract that future AI phases can consume:
+
+```json
+{
+  "jiraStory": "...",
+  "apiContract": { "structured contract" },
+  "framework": "RestAssured + Cucumber + Serenity"
+}
+```
+
 ## Next phase
 
-- Parse Jira stories and Swagger/OpenAPI contracts for real
-- Generate test matrices and BDD from actual API contracts
+- OpenAI-assisted test case enrichment from structured contract + Jira story
+- Real Jira and Swagger integrations
 - Scaffold automation files in a target project
 - Execute tests and return real reports
-- Optionally create pull requests
 
 ## Tech stack
 
 **Frontend:** React 19, TypeScript, Vite, plain CSS
 
-**Backend:** Java 17, Spring Boot 3, Spring Validation
+**Backend:** Java 17, Spring Boot 3, Jackson JSON parsing, Spring Validation
 
 ## Project structure
 
 ```
 src/                      # React frontend
   api/agentApi.ts         # Backend API client
-  components/             # UI components
+  components/             # UI components (incl. ApiContractView)
   data/mockData.ts        # Local mock fallback data
 
 backend/                  # Spring Boot backend
   src/main/java/com/agentic/api/
     controller/           # REST controllers
-    model/                # DTOs
-    service/              # Mock agent service
+    model/                # DTOs (incl. ApiContractDto)
+    service/              # OpenApiParserService, MockAgentService
 ```
 
 ## License
