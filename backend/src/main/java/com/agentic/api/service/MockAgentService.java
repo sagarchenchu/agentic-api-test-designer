@@ -18,6 +18,7 @@ public class MockAgentService implements AgentService {
     private final AutomationGenerationService automationGenerationService;
     private final FileWriteService fileWriteService;
     private final TestExecutionService testExecutionService;
+    private final GitPrService gitPrService;
 
     public MockAgentService(
             OpenApiParserService openApiParserService,
@@ -25,7 +26,8 @@ public class MockAgentService implements AgentService {
             AiTestMatrixService aiTestMatrixService,
             AutomationGenerationService automationGenerationService,
             FileWriteService fileWriteService,
-            TestExecutionService testExecutionService
+            TestExecutionService testExecutionService,
+            GitPrService gitPrService
     ) {
         this.openApiParserService = openApiParserService;
         this.contractTestMatrixService = contractTestMatrixService;
@@ -33,6 +35,7 @@ public class MockAgentService implements AgentService {
         this.automationGenerationService = automationGenerationService;
         this.fileWriteService = fileWriteService;
         this.testExecutionService = testExecutionService;
+        this.gitPrService = gitPrService;
     }
 
     @Override
@@ -105,6 +108,21 @@ public class MockAgentService implements AgentService {
     @Override
     public TestExecutionResponse getTestExecution(String executionId) {
         return testExecutionService.getTestExecution(executionId);
+    }
+
+    @Override
+    public GitPrResponse previewGitPr(GitPrRequest request) {
+        return gitPrService.previewGitPr(request);
+    }
+
+    @Override
+    public GitPrResponse createGitPr(GitPrRequest request) {
+        return gitPrService.createGitPr(request);
+    }
+
+    @Override
+    public GitPrResponse getGitPr(String operationId) {
+        return gitPrService.getGitPr(operationId);
     }
 
     @Override

@@ -33,4 +33,10 @@ public interface AgentService {
     TestExecutionResponse runTestExecution(TestExecutionRequest request);
 
     TestExecutionResponse getTestExecution(String executionId);
+
+    GitPrResponse previewGitPr(GitPrRequest request);
+
+    GitPrResponse createGitPr(GitPrRequest request);
+
+    GitPrResponse getGitPr(String operationId);
 }

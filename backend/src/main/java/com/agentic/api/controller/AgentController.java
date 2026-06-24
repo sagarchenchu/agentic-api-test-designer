@@ -92,6 +92,21 @@ public class AgentController {
         return agentService.getTestExecution(executionId);
     }
 
+    @PostMapping("/preview-git-pr")
+    public GitPrResponse previewGitPr(@Valid @RequestBody GitPrRequest request) {
+        return agentService.previewGitPr(request);
+    }
+
+    @PostMapping("/create-git-pr")
+    public GitPrResponse createGitPr(@Valid @RequestBody GitPrRequest request) {
+        return agentService.createGitPr(request);
+    }
+
+    @GetMapping("/git-pr/{operationId}")
+    public GitPrResponse getGitPr(@PathVariable String operationId) {
+        return agentService.getGitPr(operationId);
+    }
+
     @PostMapping("/run")
     public AgentRunResponse runAgent(@Valid @RequestBody AgentRequest request) {
         return agentService.runAgent(request);
