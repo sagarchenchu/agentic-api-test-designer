@@ -17,19 +17,22 @@ public class MockAgentService implements AgentService {
     private final AiTestMatrixService aiTestMatrixService;
     private final AutomationGenerationService automationGenerationService;
     private final FileWriteService fileWriteService;
+    private final TestExecutionService testExecutionService;
 
     public MockAgentService(
             OpenApiParserService openApiParserService,
             ContractTestMatrixService contractTestMatrixService,
             AiTestMatrixService aiTestMatrixService,
             AutomationGenerationService automationGenerationService,
-            FileWriteService fileWriteService
+            FileWriteService fileWriteService,
+            TestExecutionService testExecutionService
     ) {
         this.openApiParserService = openApiParserService;
         this.contractTestMatrixService = contractTestMatrixService;
         this.aiTestMatrixService = aiTestMatrixService;
         this.automationGenerationService = automationGenerationService;
         this.fileWriteService = fileWriteService;
+        this.testExecutionService = testExecutionService;
     }
 
     @Override
@@ -87,6 +90,21 @@ public class MockAgentService implements AgentService {
     public FileWriteResponse writeGeneratedFiles(FileWriteRequest request) {
         request.setWriteMode("write");
         return fileWriteService.writeGeneratedFiles(request);
+    }
+
+    @Override
+    public TestExecutionResponse previewTestExecution(TestExecutionRequest request) {
+        return testExecutionService.previewTestExecution(request);
+    }
+
+    @Override
+    public TestExecutionResponse runTestExecution(TestExecutionRequest request) {
+        return testExecutionService.runTestExecution(request);
+    }
+
+    @Override
+    public TestExecutionResponse getTestExecution(String executionId) {
+        return testExecutionService.getTestExecution(executionId);
     }
 
     @Override

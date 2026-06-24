@@ -1,0 +1,30 @@
+[
+  {
+    "name": "Create payment API",
+    "elements": [
+      {
+        "type": "scenario",
+        "name": "Create payment with valid request",
+        "steps": [
+          {
+            "result": {
+              "status": "passed"
+            }
+          }
+        ]
+      },
+      {
+        "type": "scenario",
+        "name": "Missing required accountId",
+        "steps": [
+          {
+            "result": {
+              "status": "failed",
+              "error_message": "Expected status 400 but was 500"
+            }
+          }
+        ]
+      }
+    ]
+  }
+]

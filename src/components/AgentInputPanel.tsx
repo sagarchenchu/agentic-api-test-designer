@@ -224,6 +224,44 @@ export default function AgentInputPanel({
           </label>
         </div>
 
+        <div className="form-row">
+          <div className="form-group form-group--flex">
+            <label htmlFor="testTag">Test Tag</label>
+            <input
+              id="testTag"
+              type="text"
+              className="form-input"
+              placeholder="@PAY-1234"
+              value={values.testTag}
+              onChange={(e) => update('testTag', e.target.value)}
+            />
+          </div>
+          <div className="form-group form-group--narrow">
+            <label htmlFor="mavenProfile">Maven Profile</label>
+            <input
+              id="mavenProfile"
+              type="text"
+              className="form-input"
+              placeholder="qa"
+              value={values.mavenProfile}
+              onChange={(e) => update('mavenProfile', e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="timeoutSeconds">Timeout Seconds</label>
+          <input
+            id="timeoutSeconds"
+            type="number"
+            min={30}
+            max={900}
+            className="form-input"
+            value={values.timeoutSeconds}
+            onChange={(e) => update('timeoutSeconds', Number(e.target.value) || 300)}
+          />
+        </div>
+
         <fieldset className="form-group">
           <legend>Execution Mode</legend>
           <div className="radio-group">

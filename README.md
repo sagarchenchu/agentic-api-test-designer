@@ -6,18 +6,18 @@ A web UI for generating API test cases and BDD automation from Jira stories and 
 
 Agentic API Test Designer helps QA engineers and automation developers turn Jira requirements and API contracts into structured test coverage, Cucumber feature files, and automation scaffolding — then execute tests and review results in one place.
 
-## Current phase: generated file write and diff preview (Phase 6)
+## Current phase: Maven test execution and report parsing (Phase 7)
 
 This repository includes:
 
 - **React frontend** — dashboard UI with form validation, tabs, and agent timeline
 - **Spring Boot backend** — REST API under `/api/agent` with Swagger/OpenAPI parsing and optional OpenAI integration
 
-Phase 6 adds **safe generated-file write support** with preview, simple unified diff, and guarded writes to a local automation project path. Maven/test execution is **not implemented yet**.
+Phase 7 adds **safe Maven/Serenity test execution** with preview, ProcessBuilder-based command execution, timeout handling, log capture, and Surefire/Failsafe/Cucumber/Serenity report parsing. Git commit/PR automation is **not implemented yet**.
 
-Phase 5 added AI-assisted BDD and automation file generation. OpenAI is **optional** — when disabled or unavailable, the system falls back to deterministic BDD and scaffold files.
+Phase 6 added safe generated-file writes. Phase 5 added AI-assisted BDD and automation file generation. OpenAI is **optional**.
 
-There is **no real integration** yet with Jira or test execution.
+There is **no real integration** yet with Jira or Git/PR automation.
 
 ### OpenAI setup (optional)
 
@@ -55,6 +55,8 @@ By default `openai.enabled=false` and no API key is required.
 - **File Write Preview** tab with per-file action/status/diff and write summary
 - **Preview Write to Project** and **Write Files to Project** buttons in Generated Files tab
 - Overwrite existing files and create backup checkboxes in the left panel
+- **Test Execution** tab with Maven command preview/run, summary, report paths, failed scenarios, and log tail
+- **Preview Test Execution** and **Run Maven Tests** buttons with Test Tag, Maven Profile, and Timeout controls
 - AI matrix and automation generation show source, warnings, and assumptions when available
 - Inline form validation (frontend and backend)
 - Agent timeline with execution-mode-aware step control
@@ -169,6 +171,36 @@ curl -X POST http://localhost:8080/api/agent/write-generated-files \
   }'
 ```
 
+### Preview test execution
+
+```bash
+curl -X POST http://localhost:8080/api/agent/preview-test-execution \
+  -H "Content-Type: application/json" \
+  -d '{
+    "projectPath": "C:/repos/api-automation-framework",
+    "mavenCommand": "mvn clean verify",
+    "testTag": "@PAY-1234",
+    "profile": "qa",
+    "timeoutSeconds": 300,
+    "environment": "QA"
+  }'
+```
+
+### Run test execution
+
+```bash
+curl -X POST http://localhost:8080/api/agent/run-test-execution \
+  -H "Content-Type: application/json" \
+  -d '{
+    "projectPath": "C:/repos/api-automation-framework",
+    "mavenCommand": "mvn clean verify",
+    "testTag": "@PAY-1234",
+    "profile": "qa",
+    "timeoutSeconds": 300,
+    "environment": "QA"
+  }'
+```
+
 ### Generate AI automation package
 
 ```bash
@@ -232,6 +264,9 @@ curl -X POST http://localhost:8080/api/agent/run \
 | POST | `/api/agent/generate-ai-automation-package` | BDD + automation files together |
 | POST | `/api/agent/preview-file-write` | Preview create/update/skip/blocked actions with diff |
 | POST | `/api/agent/write-generated-files` | Safely write generated files to project path |
+| POST | `/api/agent/preview-test-execution` | Validate project path and preview Maven command/report paths |
+| POST | `/api/agent/run-test-execution` | Run Maven safely, capture logs, parse reports |
+| GET | `/api/agent/test-executions/{executionId}` | Retrieve a stored Maven execution result |
 | POST | `/api/agent/generate-bdd` | Returns dynamic BDD feature (legacy mock) |
 | POST | `/api/agent/generate-files` | Returns file tree + BDD metadata |
 | POST | `/api/agent/run` | Full agent run (mock) |
@@ -245,7 +280,8 @@ curl -X POST http://localhost:8080/api/agent/run \
 2. Phase 4 sends Jira story + contract + framework to OpenAI for smarter test cases
 3. Phase 5 sends Jira story + contract + test cases to OpenAI for BDD and automation scaffold files
 4. Phase 6 previews and writes generated files safely into allowed test folders under `projectPath`
-5. If AI is disabled or fails, deterministic BDD and scaffold files are used automatically
+5. Phase 7 runs Maven via `ProcessBuilder` argument lists (no shell), parses Surefire/Failsafe/Cucumber/Serenity reports, and stores execution results
+6. If AI is disabled or fails, deterministic BDD and scaffold files are used automatically
 
 ### File write safety guardrails
 
@@ -263,9 +299,20 @@ curl -X POST http://localhost:8080/api/agent/run \
 - Sensitive paths are blocked (`.git/`, `.github/`, `.env`, `*.pem`, `*.key`, etc.)
 - `overwriteExisting=false` skips existing files; `createBackup=true` writes `<file>.bak.<timestamp>` before updates
 - `writeMode` on `FileWriteRequest` is informational only — preview and write endpoints enforce the correct mode server-side
-- No Maven execution, git commits, or writes outside `projectPath`
+- No git commits or writes outside `projectPath`
 
-Future phases can execute tests and return real reports:
+### Maven execution safety guardrails
+
+- `projectPath` must exist, be a directory, contain `pom.xml`, and must not be a filesystem root
+- Maven commands are built as `ProcessBuilder` argument lists — never via `cmd /c`, `sh -c`, or shell strings
+- Allowed goals: `mvn test`, `mvn verify`, `mvn clean test`, `mvn clean verify`
+- Safe optional args: `-Dcucumber.filter.tags=<tag>`, `-P<profile>`, `-Denv=<environment>`
+- Blocks injection patterns such as `;`, `&&`, `|`, `` ` ``, `$`, `../`, `powershell`, `cmd`, `bash`, `curl`, `rm`, etc.
+- `timeoutSeconds` must be between 30 and 900; timed-out processes are killed
+- Report parsing reads Surefire/Failsafe XML, Cucumber JSON failures, and detects Serenity report paths
+- No Git commit or PR automation yet
+
+Future phases can add Git/PR automation and deeper Serenity parsing:
 
 ```json
 {
@@ -278,8 +325,9 @@ Future phases can execute tests and return real reports:
 
 ## Next phase
 
-- Maven/test execution and real execution reports
+- Git commit/PR automation
 - Real Jira integration
+- Deeper Serenity report parsing
 
 ## Tech stack
 
@@ -299,7 +347,7 @@ backend/                  # Spring Boot backend
   src/main/java/com/agentic/api/
     controller/           # REST controllers
     model/                # DTOs (incl. ApiContractDto)
-    service/              # OpenApiParserService, FileWriteService, AutomationGenerationService
+    service/              # FileWriteService, TestExecutionService, AutomationGenerationService
 ```
 
 ## License
