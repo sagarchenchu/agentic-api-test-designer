@@ -16,7 +16,16 @@ class JiraClientServiceTest {
         properties.setEmail("qa@company.com");
         properties.setApiToken("secret-token-value");
 
-        JiraClientService service = new JiraClientService(properties, new ObjectMapper());
+        SecretMaskingService masking = new SecretMaskingService(
+                new com.agentic.api.config.OpenAiProperties(),
+                properties,
+                new com.agentic.api.config.SecurityProperties()
+        );
+        JiraClientService service = new JiraClientService(
+                properties,
+                new ObjectMapper(),
+                masking
+        );
         Method sanitize = JiraClientService.class.getDeclaredMethod("sanitize", String.class);
         sanitize.setAccessible(true);
 

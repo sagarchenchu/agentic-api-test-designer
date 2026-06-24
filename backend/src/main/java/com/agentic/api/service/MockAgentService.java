@@ -19,6 +19,7 @@ public class MockAgentService implements AgentService {
     private final FileWriteService fileWriteService;
     private final TestExecutionService testExecutionService;
     private final GitPrService gitPrService;
+    private final RunHistoryService runHistoryService;
 
     public MockAgentService(
             OpenApiParserService openApiParserService,
@@ -27,7 +28,8 @@ public class MockAgentService implements AgentService {
             AutomationGenerationService automationGenerationService,
             FileWriteService fileWriteService,
             TestExecutionService testExecutionService,
-            GitPrService gitPrService
+            GitPrService gitPrService,
+            RunHistoryService runHistoryService
     ) {
         this.openApiParserService = openApiParserService;
         this.contractTestMatrixService = contractTestMatrixService;
@@ -36,6 +38,7 @@ public class MockAgentService implements AgentService {
         this.fileWriteService = fileWriteService;
         this.testExecutionService = testExecutionService;
         this.gitPrService = gitPrService;
+        this.runHistoryService = runHistoryService;
     }
 
     @Override
@@ -186,6 +189,7 @@ public class MockAgentService implements AgentService {
         }
 
         runs.put(runId, response);
+        runHistoryService.recordAgentRun(request, response);
         return response;
     }
 

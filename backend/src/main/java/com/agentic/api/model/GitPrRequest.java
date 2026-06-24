@@ -30,6 +30,8 @@ public class GitPrRequest {
 
     private boolean dryRun = false;
 
+    private String confirmation;
+
     public String getProjectPath() {
         return projectPath;
     }
@@ -108,5 +110,13 @@ public class GitPrRequest {
 
     public void setDryRun(boolean dryRun) {
         this.dryRun = dryRun;
+    }
+
+    public String getConfirmation() {
+        return confirmation;
+    }
+
+    public void setConfirmation(String confirmation) {
+        this.confirmation = confirmation;
     }
 }

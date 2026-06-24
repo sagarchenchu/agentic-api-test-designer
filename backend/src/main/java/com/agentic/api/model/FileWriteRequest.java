@@ -26,6 +26,8 @@ public class FileWriteRequest {
 
     private boolean createBackup = true;
 
+    private String confirmation;
+
     public String getProjectPath() {
         return projectPath;
     }
@@ -64,5 +66,13 @@ public class FileWriteRequest {
 
     public void setCreateBackup(boolean createBackup) {
         this.createBackup = createBackup;
+    }
+
+    public String getConfirmation() {
+        return confirmation;
+    }
+
+    public void setConfirmation(String confirmation) {
+        this.confirmation = confirmation;
     }
 }

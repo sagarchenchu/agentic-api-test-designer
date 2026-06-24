@@ -8,11 +8,15 @@ import type {
   JiraConfigStatus,
   JiraOperationResponse,
   JiraStoryDetails,
+  RunHistoryDetail,
+  RunHistorySummary,
   RequirementSummary,
   TestCase,
   TestExecutionResponse,
   TimelineStep,
 } from '../types';
+
+export const RISK_CONFIRMATION = 'I_UNDERSTAND';
 
 export interface AgentRequest {
   jiraStoryKey: string;
@@ -68,6 +72,7 @@ export interface FileWriteRequest {
   writeMode?: 'preview' | 'write';
   overwriteExisting?: boolean;
   createBackup?: boolean;
+  confirmation?: string;
 }
 
 export interface TestExecutionRequest {
@@ -79,6 +84,7 @@ export interface TestExecutionRequest {
   timeoutSeconds?: number;
   environment?: string;
   dryRun?: boolean;
+  confirmation?: string;
 }
 
 export interface GitPrRequest {
@@ -92,6 +98,7 @@ export interface GitPrRequest {
   remoteName?: string;
   filesToCommit: string[];
   dryRun?: boolean;
+  confirmation?: string;
 }
 
 export interface JiraPostSummaryRequest {
@@ -104,11 +111,13 @@ export interface JiraPostSummaryRequest {
   failed: number;
   prUrl?: string;
   serenityReportPath?: string;
+  confirmation?: string;
 }
 
 export interface JiraLinkPrRequest {
   jiraStoryKey: string;
   prUrl: string;
+  confirmation?: string;
 }
 
 export interface AgentRunResponse {
@@ -126,6 +135,16 @@ export interface AgentRunResponse {
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080';
+
+const API_TOKEN = import.meta.env.VITE_AGENTIC_API_TOKEN ?? '';
+
+function authHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {};
+  if (API_TOKEN) {
+    headers['X-Agentic-Token'] = API_TOKEN;
+  }
+  return headers;
+}
 
 export class AgentApiError extends Error {
   status?: number;
@@ -178,6 +197,7 @@ export function buildFileWriteRequest(
     files,
     overwriteExisting: values.overwriteExisting,
     createBackup: values.createBackup,
+    confirmation: RISK_CONFIRMATION,
   };
 }
 
@@ -198,6 +218,7 @@ export function buildTestExecutionRequest(
     timeoutSeconds: values.timeoutSeconds,
     environment,
     dryRun: false,
+    confirmation: RISK_CONFIRMATION,
   };
 }
 
@@ -236,6 +257,7 @@ export function buildGitPrRequest(
     remoteName: values.remoteName.trim() || 'origin',
     filesToCommit,
     dryRun: false,
+    confirmation: RISK_CONFIRMATION,
   };
 }
 
@@ -283,6 +305,7 @@ export function buildJiraPostSummaryRequest(
     failed: testExecutionResult?.summary.failed ?? 0,
     prUrl: gitPrResult?.prUrl ?? undefined,
     serenityReportPath: testExecutionResult?.reportPaths.serenity ?? undefined,
+    confirmation: RISK_CONFIRMATION,
   };
 }
 
@@ -290,6 +313,7 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     headers: {
       'Content-Type': 'application/json',
+      ...authHeaders(),
       ...options?.headers,
     },
     ...options,
@@ -460,6 +484,24 @@ export async function linkPrToJira(
     method: 'POST',
     body: JSON.stringify(request),
   });
+}
+
+export async function listRunHistory(): Promise<RunHistorySummary[]> {
+  return apiFetch<RunHistorySummary[]>('/api/agent/history/runs');
+}
+
+export async function getRunHistory(runId: string): Promise<RunHistoryDetail> {
+  return apiFetch<RunHistoryDetail>(`/api/agent/history/runs/${runId}`);
+}
+
+export async function deleteRunHistory(runId: string): Promise<{ status: string; runId: string }> {
+  return apiFetch<{ status: string; runId: string }>(`/api/agent/history/runs/${runId}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function getRunArtifacts(runId: string): Promise<RunHistoryDetail['artifacts']> {
+  return apiFetch<RunHistoryDetail['artifacts']>(`/api/agent/history/runs/${runId}/artifacts`);
 }
 
 export async function generateBdd(

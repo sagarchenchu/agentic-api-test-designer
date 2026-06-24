@@ -13,6 +13,9 @@ import type {
   GitPrResponse,
   JiraConfigStatus,
   JiraStoryDetails,
+  RunHistoryDetail,
+  RunHistorySummary,
+  RunArtifact,
   TimelineStep,
   WorkspaceTab,
 } from './types';
@@ -50,8 +53,13 @@ import {
   fetchJiraStory,
   postJiraSummary,
   linkPrToJira,
+  listRunHistory,
+  getRunHistory,
+  deleteRunHistory,
+  getRunArtifacts,
   buildJiraStoryText,
   buildJiraPostSummaryRequest,
+  RISK_CONFIRMATION,
   generateTestMatrix,
   generateAiTestMatrix,
   runAgent,
@@ -199,6 +207,9 @@ export default function App() {
   const [canCreateGitPr, setCanCreateGitPr] = useState(false);
   const [jiraConfigStatus, setJiraConfigStatus] = useState<JiraConfigStatus | null>(null);
   const [jiraStoryDetails, setJiraStoryDetails] = useState<JiraStoryDetails | null>(null);
+  const [runHistory, setRunHistory] = useState<RunHistorySummary[]>([]);
+  const [selectedRunHistory, setSelectedRunHistory] = useState<RunHistoryDetail | null>(null);
+  const [runArtifacts, setRunArtifacts] = useState<RunArtifact[]>([]);
   const abortRef = useRef(false);
 
   useEffect(() => {
@@ -206,6 +217,9 @@ export default function App() {
     getJiraConfigStatus()
       .then(setJiraConfigStatus)
       .catch(() => setJiraConfigStatus(null));
+    listRunHistory()
+      .then(setRunHistory)
+      .catch(() => setRunHistory([]));
   }, []);
 
   const resetTimeline = useCallback((mode = formValues.executionMode) => {
@@ -541,6 +555,9 @@ export default function App() {
     setGitPrResult(null);
     setCanCreateGitPr(false);
     setJiraStoryDetails(null);
+    setRunHistory([]);
+    setSelectedRunHistory(null);
+    setRunArtifacts([]);
     setBddContent('');
     setGeneratedFiles([]);
     setSelectedFile(null);
@@ -1053,6 +1070,7 @@ export default function App() {
       const response = await linkPrToJira({
         jiraStoryKey: formValues.jiraStoryKey.trim(),
         prUrl: gitPrResult.prUrl,
+        confirmation: RISK_CONFIRMATION,
       });
       const errorText = response.errors.length ? ` Errors: ${response.errors.join(' ')}` : '';
       setStatusMessage(`${response.message ?? response.status}${errorText}`);
@@ -1063,6 +1081,85 @@ export default function App() {
           ? `Jira PR link failed: ${error.message}`
           : 'Jira PR link failed. Backend may be unavailable or Jira is disabled.';
       setStatusMessage(message);
+      setBackendConnected(false);
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  const refreshRunHistory = async () => {
+    try {
+      const runs = await listRunHistory();
+      setRunHistory(runs);
+      setBackendConnected(true);
+    } catch {
+      setStatusMessage('Failed to load run history.');
+      setBackendConnected(false);
+    }
+  };
+
+  const handleRefreshRunHistory = async () => {
+    setIsRunning(true);
+    setStatusMessage('Refreshing run history...');
+    try {
+      const runs = await listRunHistory();
+      setRunHistory(runs);
+      setActiveTab('run-history');
+      setStatusMessage(`Loaded ${runs.length} persisted runs.`);
+      setBackendConnected(true);
+    } catch {
+      setStatusMessage('Failed to load run history.');
+      setBackendConnected(false);
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  const handleOpenRunHistory = async (runId: string) => {
+    setIsRunning(true);
+    try {
+      const detail = await getRunHistory(runId);
+      setSelectedRunHistory(detail);
+      setActiveTab('run-history');
+      setStatusMessage(`Opened run ${runId}.`);
+      setBackendConnected(true);
+    } catch {
+      setStatusMessage(`Failed to open run ${runId}.`);
+      setBackendConnected(false);
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  const handleLoadRunArtifacts = async (runId: string) => {
+    setIsRunning(true);
+    try {
+      const artifacts = await getRunArtifacts(runId);
+      setRunArtifacts(artifacts);
+      setActiveTab('run-history');
+      setStatusMessage(`Loaded ${artifacts.length} artifacts for run ${runId}.`);
+      setBackendConnected(true);
+    } catch {
+      setStatusMessage(`Failed to load artifacts for run ${runId}.`);
+      setBackendConnected(false);
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  const handleDeleteRunHistory = async (runId: string) => {
+    setIsRunning(true);
+    try {
+      await deleteRunHistory(runId);
+      if (selectedRunHistory?.runId === runId) {
+        setSelectedRunHistory(null);
+        setRunArtifacts([]);
+      }
+      await refreshRunHistory();
+      setStatusMessage(`Deleted run ${runId}.`);
+      setBackendConnected(true);
+    } catch {
+      setStatusMessage(`Failed to delete run ${runId}.`);
       setBackendConnected(false);
     } finally {
       setIsRunning(false);
@@ -1146,6 +1243,13 @@ export default function App() {
             canCreateGitPr={canCreateGitPr}
             onPreviewGitPr={handlePreviewGitPr}
             onCreateGitPr={handleCreateGitPr}
+            runHistory={runHistory}
+            selectedRunHistory={selectedRunHistory}
+            runArtifacts={runArtifacts}
+            onRefreshRunHistory={handleRefreshRunHistory}
+            onOpenRunHistory={handleOpenRunHistory}
+            onLoadRunArtifacts={handleLoadRunArtifacts}
+            onDeleteRunHistory={handleDeleteRunHistory}
             onCreateBugDraft={() => handlePlaceholder('Create Bug Draft')}
             onRerunFailed={() => handlePlaceholder('Re-run Failed Tests')}
             onExportReport={() => handlePlaceholder('Export Report')}

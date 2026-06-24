@@ -36,6 +36,7 @@ export type WorkspaceTab =
   | 'file-write-preview'
   | 'test-execution'
   | 'git-pr'
+  | 'run-history'
   | 'execution-report';
 
 export interface HeaderEntry {
@@ -109,6 +110,51 @@ export interface JiraOperationResponse {
   message?: string | null;
   warnings: string[];
   errors: string[];
+}
+
+export interface RunHistorySummary {
+  runId: string;
+  jiraStoryKey: string;
+  status: string;
+  executionMode?: string | null;
+  testGenerationMode?: string | null;
+  frameworkType?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  testCaseCount: number;
+  generatedFileCount: number;
+  fileWriteSummary?: string | null;
+  testExecutionStatus?: string | null;
+  gitPrUrl?: string | null;
+  jiraUpdateStatus?: string | null;
+  warnings: string[];
+  errors: string[];
+}
+
+export interface RunArtifact {
+  id: number;
+  runId: string;
+  artifactType: string;
+  name: string;
+  content?: string | null;
+  createdAt?: string | null;
+}
+
+export interface RunHistoryDetail extends RunHistorySummary {
+  swaggerSourceType?: string | null;
+  artifacts: RunArtifact[];
+  externalOperations: ExternalOperation[];
+}
+
+export interface ExternalOperation {
+  id: number;
+  runId: string;
+  operationType: string;
+  externalId?: string | null;
+  status: string;
+  url?: string | null;
+  detailsJson?: string | null;
+  createdAt?: string | null;
 }
 
 export interface RequirementSummary {

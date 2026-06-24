@@ -33,17 +33,26 @@ public class GitPrService {
     private final GitCommandBuilder commandBuilder;
     private final GitProcessRunnerService processRunnerService;
     private final GitStatusParserService statusParserService;
+    private final OperationConfirmationService operationConfirmationService;
+    private final RunHistoryService runHistoryService;
+    private final SecretMaskingService secretMaskingService;
 
     public GitPrService(
             GitValidationService validationService,
             GitCommandBuilder commandBuilder,
             GitProcessRunnerService processRunnerService,
-            GitStatusParserService statusParserService
+            GitStatusParserService statusParserService,
+            OperationConfirmationService operationConfirmationService,
+            RunHistoryService runHistoryService,
+            SecretMaskingService secretMaskingService
     ) {
         this.validationService = validationService;
         this.commandBuilder = commandBuilder;
         this.processRunnerService = processRunnerService;
         this.statusParserService = statusParserService;
+        this.operationConfirmationService = operationConfirmationService;
+        this.runHistoryService = runHistoryService;
+        this.secretMaskingService = secretMaskingService;
     }
 
     public GitPrResponse previewGitPr(GitPrRequest request) {
@@ -95,6 +104,7 @@ public class GitPrService {
     }
 
     public GitPrResponse createGitPr(GitPrRequest request) {
+        operationConfirmationService.requireConfirmation(request.getConfirmation());
         GitPrResponse response = buildBaseResponse(request);
         List<String> commandLog = new ArrayList<>();
 
@@ -238,7 +248,9 @@ public class GitPrService {
         response.setPrUrl(prUrl);
         response.setCommandLog(commandLog);
         response.setStatus("CREATED");
+        maskResponse(response);
         store(response);
+        runHistoryService.recordGitPr(response, request.getJiraStoryKey());
         return response;
     }
 
@@ -323,5 +335,11 @@ public class GitPrService {
 
     private void store(GitPrResponse response) {
         operations.put(response.getOperationId(), response);
+    }
+
+    private void maskResponse(GitPrResponse response) {
+        response.setCommandLog(secretMaskingService.maskList(response.getCommandLog()));
+        response.setWarnings(secretMaskingService.maskList(response.getWarnings()));
+        response.setErrors(secretMaskingService.maskList(response.getErrors()));
     }
 }

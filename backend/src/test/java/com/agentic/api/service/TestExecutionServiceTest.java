@@ -3,6 +3,7 @@ package com.agentic.api.service;
 import com.agentic.api.model.TestExecutionRequest;
 import com.agentic.api.model.TestExecutionResponse;
 import com.agentic.api.service.ProcessRunnerService.ProcessRunResult;
+import com.agentic.api.support.TestSupport;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,7 +36,11 @@ class TestExecutionServiceTest {
         testExecutionService = new TestExecutionService(
                 new MavenCommandBuilder(),
                 processRunnerService,
-                new TestReportParserService(new com.fasterxml.jackson.databind.ObjectMapper())
+                new TestReportParserService(new com.fasterxml.jackson.databind.ObjectMapper()),
+                TestSupport.permissivePathPolicy(),
+                TestSupport.operationConfirmationService(),
+                TestSupport.mockRunHistoryService(),
+                TestSupport.secretMaskingService()
         );
     }
 

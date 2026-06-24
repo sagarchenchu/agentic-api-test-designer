@@ -3,6 +3,7 @@ package com.agentic.api.service;
 import com.agentic.api.model.GitPrRequest;
 import com.agentic.api.model.GitPrResponse;
 import com.agentic.api.service.GitProcessRunnerService.GitCommandResult;
+import com.agentic.api.support.TestSupport;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,10 +33,13 @@ class GitPrServiceTest {
     @BeforeEach
     void setUp() {
         gitPrService = new GitPrService(
-                new GitValidationService(),
+                new GitValidationService(TestSupport.permissivePathPolicy()),
                 new GitCommandBuilder(),
                 processRunnerService,
-                new GitStatusParserService()
+                new GitStatusParserService(),
+                TestSupport.operationConfirmationService(),
+                TestSupport.mockRunHistoryService(),
+                TestSupport.secretMaskingService()
         );
     }
 

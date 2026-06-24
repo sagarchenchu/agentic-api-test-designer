@@ -4,6 +4,7 @@ import com.agentic.api.model.FileWriteRequest;
 import com.agentic.api.model.FileWriteResponse;
 import com.agentic.api.model.FileWriteResult;
 import com.agentic.api.model.GeneratedFileDto;
+import com.agentic.api.support.TestSupport;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -25,7 +26,12 @@ class FileWriteServiceTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        fileWriteService = new FileWriteService();
+        fileWriteService = new FileWriteService(
+                TestSupport.permissivePathPolicy(),
+                TestSupport.operationConfirmationService(),
+                TestSupport.mockRunHistoryService(),
+                TestSupport.secretMaskingService()
+        );
         projectRoot = tempDir.resolve("automation-project");
         Files.createDirectories(projectRoot.resolve("src/test"));
         Files.writeString(projectRoot.resolve("pom.xml"), "<project/>", StandardCharsets.UTF_8);

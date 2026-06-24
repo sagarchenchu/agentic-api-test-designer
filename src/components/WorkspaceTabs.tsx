@@ -7,6 +7,7 @@ import GeneratedFilesTree from './GeneratedFilesTree';
 import FileWritePreview from './FileWritePreview';
 import TestExecutionView from './TestExecutionView';
 import GitPrView from './GitPrView';
+import RunHistoryView from './RunHistoryView';
 import ExecutionReport from './ExecutionReport';
 import type {
   ApiContract,
@@ -17,6 +18,9 @@ import type {
   FileWriteResponse,
   TestExecutionResponse,
   GitPrResponse,
+  RunHistoryDetail,
+  RunHistorySummary,
+  RunArtifact,
 } from '../types';
 
 const TABS: { id: WorkspaceTab; label: string }[] = [
@@ -28,6 +32,7 @@ const TABS: { id: WorkspaceTab; label: string }[] = [
   { id: 'file-write-preview', label: 'File Write Preview' },
   { id: 'test-execution', label: 'Test Execution' },
   { id: 'git-pr', label: 'Git / PR' },
+  { id: 'run-history', label: 'Run History' },
   { id: 'execution-report', label: 'Execution Report' },
 ];
 
@@ -63,6 +68,13 @@ interface WorkspaceTabsProps {
   canCreateGitPr: boolean;
   onPreviewGitPr: () => void;
   onCreateGitPr: () => void;
+  runHistory: RunHistorySummary[];
+  selectedRunHistory: RunHistoryDetail | null;
+  runArtifacts: RunArtifact[];
+  onRefreshRunHistory: () => void;
+  onOpenRunHistory: (runId: string) => void;
+  onLoadRunArtifacts: (runId: string) => void;
+  onDeleteRunHistory: (runId: string) => void;
   onCreateBugDraft: () => void;
   onRerunFailed: () => void;
   onExportReport: () => void;
@@ -100,6 +112,13 @@ export default function WorkspaceTabs({
   canCreateGitPr,
   onPreviewGitPr,
   onCreateGitPr,
+  runHistory,
+  selectedRunHistory,
+  runArtifacts,
+  onRefreshRunHistory,
+  onOpenRunHistory,
+  onLoadRunArtifacts,
+  onDeleteRunHistory,
   onCreateBugDraft,
   onRerunFailed,
   onExportReport,
@@ -181,6 +200,18 @@ export default function WorkspaceTabs({
             canCreatePr={canCreateGitPr}
             onPreview={onPreviewGitPr}
             onCreate={onCreateGitPr}
+          />
+        )}
+        {activeTab === 'run-history' && (
+          <RunHistoryView
+            runs={runHistory}
+            selectedRun={selectedRunHistory}
+            artifacts={runArtifacts}
+            isRunning={isRunning}
+            onRefresh={onRefreshRunHistory}
+            onOpenRun={onOpenRunHistory}
+            onLoadArtifacts={onLoadRunArtifacts}
+            onDeleteRun={onDeleteRunHistory}
           />
         )}
         {activeTab === 'execution-report' && (
