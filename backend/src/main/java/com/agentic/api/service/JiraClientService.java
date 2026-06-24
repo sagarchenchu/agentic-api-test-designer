@@ -20,10 +20,16 @@ public class JiraClientService {
     private final JiraProperties properties;
     private final ObjectMapper objectMapper;
     private final RestClient restClient;
+    private final SecretMaskingService secretMaskingService;
 
-    public JiraClientService(JiraProperties properties, ObjectMapper objectMapper) {
+    public JiraClientService(
+            JiraProperties properties,
+            ObjectMapper objectMapper,
+            SecretMaskingService secretMaskingService
+    ) {
         this.properties = properties;
         this.objectMapper = objectMapper;
+        this.secretMaskingService = secretMaskingService;
         this.restClient = RestClient.builder().build();
     }
 
@@ -104,15 +110,7 @@ public class JiraClientService {
         if (body == null) {
             return "";
         }
-        String redacted = body;
-        String apiToken = properties.getApiToken();
-        if (apiToken != null && !apiToken.isBlank()) {
-            redacted = redacted.replace(apiToken, "[REDACTED]");
-        }
-        String email = properties.getEmail();
-        if (email != null && !email.isBlank()) {
-            redacted = redacted.replace(email, "[REDACTED_EMAIL]");
-        }
+        String redacted = secretMaskingService.mask(body);
         return redacted.length() > 500 ? redacted.substring(0, 500) : redacted;
     }
 }

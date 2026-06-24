@@ -42,12 +42,33 @@ public class FileWriteService {
     private static final DateTimeFormatter BACKUP_TIMESTAMP =
             DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss");
 
+    private final ProjectPathPolicyService projectPathPolicyService;
+    private final OperationConfirmationService operationConfirmationService;
+    private final RunHistoryService runHistoryService;
+    private final SecretMaskingService secretMaskingService;
+
+    public FileWriteService(
+            ProjectPathPolicyService projectPathPolicyService,
+            OperationConfirmationService operationConfirmationService,
+            RunHistoryService runHistoryService,
+            SecretMaskingService secretMaskingService
+    ) {
+        this.projectPathPolicyService = projectPathPolicyService;
+        this.operationConfirmationService = operationConfirmationService;
+        this.runHistoryService = runHistoryService;
+        this.secretMaskingService = secretMaskingService;
+    }
+
     public FileWriteResponse previewFileWrite(FileWriteRequest request) {
         return process(request, false);
     }
 
     public FileWriteResponse writeGeneratedFiles(FileWriteRequest request) {
-        return process(request, true);
+        operationConfirmationService.requireConfirmation(request.getConfirmation());
+        FileWriteResponse response = process(request, true);
+        runHistoryService.recordFileWrite(response, null);
+        maskResponse(response);
+        return response;
     }
 
     private FileWriteResponse process(FileWriteRequest request, boolean writeMode) {
@@ -72,6 +93,12 @@ public class FileWriteService {
     private Path validateProjectPath(String projectPath, FileWriteResponse response) {
         if (projectPath == null || projectPath.isBlank()) {
             response.getErrors().add("projectPath is required");
+            return null;
+        }
+
+        response.getErrors().addAll(secretMaskingService.maskList(
+                projectPathPolicyService.validateProjectPath(projectPath)));
+        if (!response.getErrors().isEmpty()) {
             return null;
         }
 
@@ -386,5 +413,10 @@ public class FileWriteService {
         summary.setWritten(written);
         summary.setErrors(errors);
         response.setSummary(summary);
+    }
+
+    private void maskResponse(FileWriteResponse response) {
+        response.setWarnings(secretMaskingService.maskList(response.getWarnings()));
+        response.setErrors(secretMaskingService.maskList(response.getErrors()));
     }
 }

@@ -2,6 +2,7 @@ package com.agentic.api.service;
 
 import com.agentic.api.config.JiraProperties;
 import com.agentic.api.model.*;
+import com.agentic.api.support.TestSupport;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,7 +42,10 @@ class JiraStoryServiceTest {
                 jiraClientService,
                 new JiraKeyValidator(),
                 adfTextExtractor,
-                new JiraCommentBuilder(objectMapper)
+                new JiraCommentBuilder(objectMapper),
+                TestSupport.operationConfirmationService(),
+                TestSupport.mockRunHistoryService(),
+                TestSupport.secretMaskingService()
         );
     }
 
@@ -53,7 +57,10 @@ class JiraStoryServiceTest {
                 jiraClientService,
                 new JiraKeyValidator(),
                 new JiraAdfTextExtractor(objectMapper),
-                new JiraCommentBuilder(objectMapper)
+                new JiraCommentBuilder(objectMapper),
+                TestSupport.operationConfirmationService(),
+                TestSupport.mockRunHistoryService(),
+                TestSupport.secretMaskingService()
         );
 
         JiraConfigStatusResponse status = service.getConfigStatus();

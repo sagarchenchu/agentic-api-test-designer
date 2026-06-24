@@ -10,6 +10,8 @@ public class JiraLinkPrRequest {
     @NotBlank(message = "prUrl is required")
     private String prUrl;
 
+    private String confirmation;
+
     public String getJiraStoryKey() {
         return jiraStoryKey;
     }
@@ -24,5 +26,13 @@ public class JiraLinkPrRequest {
 
     public void setPrUrl(String prUrl) {
         this.prUrl = prUrl;
+    }
+
+    public String getConfirmation() {
+        return confirmation;
+    }
+
+    public void setConfirmation(String confirmation) {
+        this.confirmation = confirmation;
     }
 }

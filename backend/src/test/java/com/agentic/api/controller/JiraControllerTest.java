@@ -50,6 +50,6 @@ class JiraControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of("jiraStoryKey", "PAY-1234"))))
                 .andExpect(status().isServiceUnavailable())
-                .andExpect(jsonPath("$.error", containsString("disabled")));
+                .andExpect(jsonPath("$.message", containsString("disabled")));
     }
 }

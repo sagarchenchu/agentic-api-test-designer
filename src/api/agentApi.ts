@@ -8,6 +8,8 @@ import type {
   JiraConfigStatus,
   JiraOperationResponse,
   JiraStoryDetails,
+  RunHistoryDetail,
+  RunHistorySummary,
   RequirementSummary,
   TestCase,
   TestExecutionResponse,
@@ -126,6 +128,16 @@ export interface AgentRunResponse {
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080';
+
+const API_TOKEN = import.meta.env.VITE_AGENTIC_API_TOKEN ?? '';
+
+function authHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {};
+  if (API_TOKEN) {
+    headers['X-Agentic-Token'] = API_TOKEN;
+  }
+  return headers;
+}
 
 export class AgentApiError extends Error {
   status?: number;
@@ -290,6 +302,7 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     headers: {
       'Content-Type': 'application/json',
+      ...authHeaders(),
       ...options?.headers,
     },
     ...options,
@@ -460,6 +473,24 @@ export async function linkPrToJira(
     method: 'POST',
     body: JSON.stringify(request),
   });
+}
+
+export async function listRunHistory(): Promise<RunHistorySummary[]> {
+  return apiFetch<RunHistorySummary[]>('/api/agent/history/runs');
+}
+
+export async function getRunHistory(runId: string): Promise<RunHistoryDetail> {
+  return apiFetch<RunHistoryDetail>(`/api/agent/history/runs/${runId}`);
+}
+
+export async function deleteRunHistory(runId: string): Promise<{ status: string; runId: string }> {
+  return apiFetch<{ status: string; runId: string }>(`/api/agent/history/runs/${runId}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function getRunArtifacts(runId: string): Promise<RunHistoryDetail['artifacts']> {
+  return apiFetch<RunHistoryDetail['artifacts']>(`/api/agent/history/runs/${runId}/artifacts`);
 }
 
 export async function generateBdd(

@@ -6,14 +6,14 @@ A web UI for generating API test cases and BDD automation from Jira stories and 
 
 Agentic API Test Designer helps QA engineers and automation developers turn Jira requirements and API contracts into structured test coverage, Cucumber feature files, and automation scaffolding — then execute tests and review results in one place.
 
-## Current phase: Jira story fetch and result update integration (Phase 9)
+## Current phase: Production hardening, run history, and security controls (Phase 10)
 
 This repository includes:
 
-- **React frontend** — dashboard UI with form validation, tabs, and agent timeline
-- **Spring Boot backend** — REST API under `/api/agent` with Swagger/OpenAPI parsing and optional OpenAI integration
+- **React frontend** — dashboard UI with form validation, tabs, agent timeline, and persisted run history
+- **Spring Boot backend** — REST API under `/api/agent` with H2-backed run history, optional API token auth, and secret masking
 
-Phase 9 adds **Jira Cloud integration** to fetch story details and post generated test/execution/PR summaries back as Jira comments. Jira is **disabled by default** — no token is required for CI. Phase 8 added Git/PR automation. OpenAI remains **optional**.
+Phase 10 adds **persistent run history** (H2, PostgreSQL-ready schema), **optional local API token auth** (`security.enabled=false` by default), **secret masking**, **project path policy**, **risky-operation confirmation** when security is enabled, consistent `ApiErrorResponse` errors, and Docker deployment docs. Phase 9 added Jira integration. OpenAI remains **optional**.
 
 ### OpenAI setup (optional)
 
@@ -50,7 +50,47 @@ jira.email=${JIRA_EMAIL}
 jira.api-token=${JIRA_API_TOKEN}
 ```
 
-The API token is never logged or returned in API responses. Do not send tokens from the frontend.
+The API token is never logged or returned in API responses. Do not send tokens from the frontend except via the `X-Agentic-Token` header when configured.
+
+### Security setup (optional)
+
+Local API token auth is **disabled by default**:
+
+```bash
+export SECURITY_ENABLED=true
+export AGENTIC_API_TOKEN=your-local-api-token
+```
+
+Frontend (optional):
+
+```bash
+export VITE_AGENTIC_API_TOKEN=your-local-api-token
+```
+
+When `security.enabled=true`, requests must include `X-Agentic-Token`. Risky operations also require `"confirmation": "I_UNDERSTAND"` in the request body:
+
+- `write-generated-files`
+- `run-test-execution`
+- `create-git-pr`
+- `jira/post-summary`
+- `jira/link-pr`
+
+### Project path policy (optional)
+
+```properties
+agent.allow-any-local-path=true
+agent.allowed-project-roots=C:/repos,/Users/me/repos
+```
+
+When `agent.allow-any-local-path=false`, `projectPath` must be under one of the configured roots.
+
+### Deployment modes
+
+- **Local developer:** `npm run dev` + `cd backend && mvn spring-boot:run` (security/Jira/OpenAI disabled by default)
+- **Docker:** copy `.env.example` to `.env`, then `docker compose up --build`
+- **Production-like:** enable `SECURITY_ENABLED`, restrict `AGENT_ALLOWED_PROJECT_ROOTS`, configure Jira/OpenAI server-side only
+
+See `.env.example` for all environment variables.
 
 ### Swagger parser limitations
 
@@ -80,6 +120,8 @@ The API token is never logged or returned in API responses. Do not send tokens f
 - **Fetch Jira Story**, **Post Jira Summary**, and **Link PR to Jira** buttons near the Jira Story Key field
 - Jira config status shown in the left panel (enabled/configured only — no secrets)
 - Fetched Jira story populates story text, acceptance criteria, and requirement summary fields
+- **Run History** tab with persisted runs, open/detail, artifacts, and delete actions
+- Optional `VITE_AGENTIC_API_TOKEN` sends `X-Agentic-Token` when API security is enabled
 - AI matrix and automation generation show source, warnings, and assumptions when available
 - Inline form validation (frontend and backend)
 - Agent timeline with execution-mode-aware step control
@@ -376,6 +418,10 @@ curl -X POST http://localhost:8080/api/agent/run \
 | POST | `/api/agent/jira/fetch-story` | Fetch Jira issue by key and extract story details |
 | POST | `/api/agent/jira/post-summary` | Post generated test/execution summary comment to Jira |
 | POST | `/api/agent/jira/link-pr` | Post pull request link comment to Jira |
+| GET | `/api/agent/history/runs` | List persisted run history summaries |
+| GET | `/api/agent/history/runs/{runId}` | Get run history detail with artifacts and external operations |
+| DELETE | `/api/agent/history/runs/{runId}` | Delete a persisted run and related records |
+| GET | `/api/agent/history/runs/{runId}/artifacts` | List artifacts for a run |
 | POST | `/api/agent/generate-bdd` | Returns dynamic BDD feature (legacy mock) |
 | POST | `/api/agent/generate-files` | Returns file tree + BDD metadata |
 | POST | `/api/agent/run` | Full agent run (mock) |
@@ -392,7 +438,8 @@ curl -X POST http://localhost:8080/api/agent/run \
 5. Phase 7 runs Maven via `ProcessBuilder` argument lists (no shell), parses Surefire/Failsafe/Cucumber/Serenity reports, and stores execution results
 6. Phase 8 runs git/gh via `ProcessBuilder` argument lists, stages only allowed generated test files, blocks unrelated working tree changes, and stores PR operation results
 7. Phase 9 fetches Jira stories via REST API, extracts acceptance criteria from ADF/plain text, and posts ADF summary/PR comments back to Jira
-8. If AI is disabled or fails, deterministic BDD and scaffold files are used automatically
+8. Phase 10 persists run history in H2, masks secrets in errors/logs/history, supports optional API token auth, and centralizes project path policy
+9. If AI is disabled or fails, deterministic BDD and scaffold files are used automatically
 
 ### File write safety guardrails
 
@@ -448,21 +495,19 @@ curl -X POST http://localhost:8080/api/agent/run \
 - Acceptance criteria extracted from description sections titled "Acceptance Criteria" or "AC"
 - Backend tests mock the Jira client — no real Jira calls in CI
 
-Future phases can add production hardening, auth, history, and deployment:
+### Production hardening (Phase 10)
 
-```json
-{
-  "jiraStory": "...",
-  "apiContract": { "structured contract" },
-  "testCases": [ "selected cases" ],
-  "framework": "RestAssured + Cucumber + Serenity"
-}
-```
+- Run history stored in H2 (`AgentRunHistoryEntity`, `RunArtifactEntity`, `ExternalOperationEntity`)
+- Agent runs, file writes, test executions, Git PR operations, and Jira updates are recorded where practical
+- `SecretMaskingService` redacts OpenAI/Jira/security tokens, Authorization headers, Bearer/Basic values, and password-like fields
+- `security.enabled=false` by default; when enabled, require `X-Agentic-Token` (never logged or returned)
+- `agent.allow-any-local-path=true` by default for local dev; production can restrict `AGENT_ALLOWED_PROJECT_ROOTS`
+- Risky operations require `"confirmation": "I_UNDERSTAND"` when security is enabled
+- API errors use consistent `ApiErrorResponse` (`error`, `message`, `code`, `details`)
 
 ## Next phase
 
-- Production hardening, auth, run history, and deployment (Phase 10)
-- Deeper Serenity report parsing
+- Deeper Serenity report parsing and optional PostgreSQL datasource profile
 
 ## Tech stack
 
@@ -482,7 +527,7 @@ backend/                  # Spring Boot backend
   src/main/java/com/agentic/api/
     controller/           # REST controllers
     model/                # DTOs (incl. ApiContractDto)
-    service/              # FileWriteService, TestExecutionService, GitPrService, JiraStoryService
+    service/              # RunHistoryService, SecretMaskingService, GitPrService, JiraStoryService
 ```
 
 ## License

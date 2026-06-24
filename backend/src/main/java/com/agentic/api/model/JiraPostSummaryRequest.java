@@ -16,6 +16,8 @@ public class JiraPostSummaryRequest {
     private String prUrl;
     private String serenityReportPath;
 
+    private String confirmation;
+
     public String getJiraStoryKey() {
         return jiraStoryKey;
     }
@@ -86,5 +88,13 @@ public class JiraPostSummaryRequest {
 
     public void setSerenityReportPath(String serenityReportPath) {
         this.serenityReportPath = serenityReportPath;
+    }
+
+    public String getConfirmation() {
+        return confirmation;
+    }
+
+    public void setConfirmation(String confirmation) {
+        this.confirmation = confirmation;
     }
 }

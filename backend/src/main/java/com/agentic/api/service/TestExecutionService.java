@@ -27,15 +27,27 @@ public class TestExecutionService {
     private final MavenCommandBuilder mavenCommandBuilder;
     private final ProcessRunnerService processRunnerService;
     private final TestReportParserService testReportParserService;
+    private final ProjectPathPolicyService projectPathPolicyService;
+    private final OperationConfirmationService operationConfirmationService;
+    private final RunHistoryService runHistoryService;
+    private final SecretMaskingService secretMaskingService;
 
     public TestExecutionService(
             MavenCommandBuilder mavenCommandBuilder,
             ProcessRunnerService processRunnerService,
-            TestReportParserService testReportParserService
+            TestReportParserService testReportParserService,
+            ProjectPathPolicyService projectPathPolicyService,
+            OperationConfirmationService operationConfirmationService,
+            RunHistoryService runHistoryService,
+            SecretMaskingService secretMaskingService
     ) {
         this.mavenCommandBuilder = mavenCommandBuilder;
         this.processRunnerService = processRunnerService;
         this.testReportParserService = testReportParserService;
+        this.projectPathPolicyService = projectPathPolicyService;
+        this.operationConfirmationService = operationConfirmationService;
+        this.runHistoryService = runHistoryService;
+        this.secretMaskingService = secretMaskingService;
     }
 
     public TestExecutionResponse previewTestExecution(TestExecutionRequest request) {
@@ -62,6 +74,7 @@ public class TestExecutionService {
     }
 
     public TestExecutionResponse runTestExecution(TestExecutionRequest request) {
+        operationConfirmationService.requireConfirmation(request.getConfirmation());
         TestExecutionResponse response = buildBaseResponse(request);
         String startedAt = Instant.now().toString();
         response.setStartedAt(startedAt);
@@ -124,6 +137,8 @@ public class TestExecutionService {
         }
 
         store(response);
+        maskResponse(response);
+        runHistoryService.recordTestExecution(response, null);
         return response;
     }
 
@@ -146,6 +161,12 @@ public class TestExecutionService {
         String projectPath = request.getProjectPath();
         if (projectPath == null || projectPath.isBlank()) {
             response.getErrors().add("projectPath is required");
+            return false;
+        }
+
+        response.getErrors().addAll(secretMaskingService.maskList(
+                projectPathPolicyService.validateProjectPath(projectPath)));
+        if (!response.getErrors().isEmpty()) {
             return false;
         }
 
@@ -204,5 +225,12 @@ public class TestExecutionService {
 
     private void store(TestExecutionResponse response) {
         executions.put(response.getExecutionId(), response);
+    }
+
+    private void maskResponse(TestExecutionResponse response) {
+        response.setCommand(secretMaskingService.mask(response.getCommand()));
+        response.setLogTail(secretMaskingService.mask(response.getLogTail()));
+        response.setWarnings(secretMaskingService.maskList(response.getWarnings()));
+        response.setErrors(secretMaskingService.maskList(response.getErrors()));
     }
 }

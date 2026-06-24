@@ -107,7 +107,7 @@ class AgentControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.fieldErrors.jiraStoryKey", notNullValue()));
+                .andExpect(jsonPath("$.details.jiraStoryKey", notNullValue()));
     }
 
     @Test
@@ -119,7 +119,7 @@ class AgentControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.fieldErrors.credentialRef", notNullValue()));
+                .andExpect(jsonPath("$.details.credentialRef", notNullValue()));
     }
 
     @Test
@@ -131,7 +131,7 @@ class AgentControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.fieldErrors.httpMethod", notNullValue()));
+                .andExpect(jsonPath("$.details.httpMethod", notNullValue()));
     }
 
     private AgentRequest validRequest() {

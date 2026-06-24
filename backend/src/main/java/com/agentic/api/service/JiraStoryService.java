@@ -18,19 +18,28 @@ public class JiraStoryService {
     private final JiraKeyValidator jiraKeyValidator;
     private final JiraAdfTextExtractor adfTextExtractor;
     private final JiraCommentBuilder commentBuilder;
+    private final OperationConfirmationService operationConfirmationService;
+    private final RunHistoryService runHistoryService;
+    private final SecretMaskingService secretMaskingService;
 
     public JiraStoryService(
             JiraProperties properties,
             JiraClientService jiraClientService,
             JiraKeyValidator jiraKeyValidator,
             JiraAdfTextExtractor adfTextExtractor,
-            JiraCommentBuilder commentBuilder
+            JiraCommentBuilder commentBuilder,
+            OperationConfirmationService operationConfirmationService,
+            RunHistoryService runHistoryService,
+            SecretMaskingService secretMaskingService
     ) {
         this.properties = properties;
         this.jiraClientService = jiraClientService;
         this.jiraKeyValidator = jiraKeyValidator;
         this.adfTextExtractor = adfTextExtractor;
         this.commentBuilder = commentBuilder;
+        this.operationConfirmationService = operationConfirmationService;
+        this.runHistoryService = runHistoryService;
+        this.secretMaskingService = secretMaskingService;
     }
 
     public JiraConfigStatusResponse getConfigStatus() {
@@ -81,6 +90,7 @@ public class JiraStoryService {
     }
 
     public JiraOperationResponse postSummary(JiraPostSummaryRequest request) {
+        operationConfirmationService.requireConfirmation(request.getConfirmation());
         String issueKey = jiraKeyValidator.normalizeAndValidate(request.getJiraStoryKey());
         jiraClientService.requireAvailable();
 
@@ -98,10 +108,13 @@ public class JiraStoryService {
             response.getErrors().add(ex.getMessage());
             response.setMessage("Failed to post summary to Jira");
         }
+        maskOperation(response);
+        runHistoryService.recordJiraOperation(response, "JIRA_SUMMARY");
         return response;
     }
 
     public JiraOperationResponse linkPr(JiraLinkPrRequest request) {
+        operationConfirmationService.requireConfirmation(request.getConfirmation());
         String issueKey = jiraKeyValidator.normalizeAndValidate(request.getJiraStoryKey());
         jiraClientService.requireAvailable();
 
@@ -119,7 +132,15 @@ public class JiraStoryService {
             response.getErrors().add(ex.getMessage());
             response.setMessage("Failed to link pull request in Jira");
         }
+        maskOperation(response);
+        runHistoryService.recordJiraOperation(response, "JIRA_LINK_PR");
         return response;
+    }
+
+    private void maskOperation(JiraOperationResponse response) {
+        response.setMessage(secretMaskingService.mask(response.getMessage()));
+        response.setWarnings(secretMaskingService.maskList(response.getWarnings()));
+        response.setErrors(secretMaskingService.maskList(response.getErrors()));
     }
 
     private List<String> readStringArray(JsonNode arrayNode) {

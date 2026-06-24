@@ -1,6 +1,7 @@
 package com.agentic.api.service;
 
 import com.agentic.api.model.GitPrRequest;
+import com.agentic.api.support.TestSupport;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -20,7 +21,7 @@ class GitValidationServiceTest {
 
     @BeforeEach
     void setUp() {
-        validationService = new GitValidationService();
+        validationService = new GitValidationService(TestSupport.permissivePathPolicy());
     }
 
     @Test

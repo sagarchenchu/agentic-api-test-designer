@@ -1,0 +1,14 @@
+services:
+  agentic-api-test-designer:
+    build: .
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:h2:file:/data/agentic;AUTO_SERVER=TRUE
+    volumes:
+      - agentic-data:/data
+
+volumes:
+  agentic-data:

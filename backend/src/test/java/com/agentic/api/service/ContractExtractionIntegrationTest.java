@@ -82,7 +82,7 @@ class ContractExtractionIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.error", containsString("No operation found")));
+                .andExpect(jsonPath("$.message", containsString("No operation found")));
     }
 
     @Test

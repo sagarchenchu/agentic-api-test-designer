@@ -37,6 +37,12 @@ public class GitValidationService {
 
     private static final Pattern DRIVE_LETTER_PATTERN = Pattern.compile("^[A-Za-z]:");
 
+    private final ProjectPathPolicyService projectPathPolicyService;
+
+    public GitValidationService(ProjectPathPolicyService projectPathPolicyService) {
+        this.projectPathPolicyService = projectPathPolicyService;
+    }
+
     public void applyDefaults(GitPrRequest request) {
         String jiraKey = safe(request.getJiraStoryKey());
         if (jiraKey.isBlank()) {
@@ -66,6 +72,7 @@ public class GitValidationService {
         applyDefaults(request);
         List<String> errors = new ArrayList<>();
 
+        errors.addAll(projectPathPolicyService.validateProjectPath(request.getProjectPath()));
         Path projectRoot = validateProjectPath(request.getProjectPath(), errors);
         validateBranch(request.getBaseBranch(), "baseBranch", errors);
         validateBranch(request.getNewBranchName(), "newBranchName", errors);
